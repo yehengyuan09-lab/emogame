@@ -1,0 +1,49 @@
+# EmoGame — Game Virtual Goods Emotional Premium Evaluation Agent
+# Python 3.12+
+
+# ── Web Framework ──
+fastapi
+uvicorn[standard]
+streamlit
+
+# ── Data Crawling ──
+httpx
+selenium
+beautifulsoup4
+aiohttp
+
+# ── ML / Data ──
+xgboost
+scikit-learn
+optuna
+numpy
+pandas
+
+# ── VLM / Vision ──
+torch
+torchvision
+transformers
+pillow
+opencv-python-headless
+
+# ── LLM / Agent ──
+openai
+langchain
+langgraph
+langchain-openai
+
+# ── Visualization ──
+plotly
+streamlit-echarts
+
+# ── Storage ──
+redis
+sqlalchemy
+alembic
+
+# ── Utilities ──
+pydantic
+pydantic-settings
+python-dotenv
+tenacity
+loguru

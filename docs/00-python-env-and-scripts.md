@@ -1,0 +1,239 @@
+# Python 环境与本地数据采集入门
+
+本文档用于帮助新成员快速准备 Python 开发环境，并运行当前仓库里已经存在的本地数据采集与检查脚本。
+
+## 1. Python 环境要求
+
+本项目推荐使用 Python 3.12 或更新版本。先确认本机版本：
+
+```bash
+python3 --version
+```
+
+如果输出类似 `Python 3.12.x`，就可以继续。若版本过低，建议通过系统包管理器、pyenv 或 Anaconda 安装新版 Python。
+
+## 2. 创建虚拟环境
+
+建议在项目根目录创建虚拟环境，避免依赖污染系统 Python：
+
+```bash
+cd /home/mzhyui/git/emogame
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+激活后，终端前面通常会出现 `(.venv)`。后续安装依赖和运行脚本都建议在这个环境里执行。
+
+退出虚拟环境：
+
+```bash
+deactivate
+```
+
+## 3. 安装项目依赖
+
+项目依赖集中在根目录的 `requirements.txt`：
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+依赖大致分为几类：
+
+| 类别 | 主要用途 | 示例依赖 |
+|------|----------|----------|
+| Web 服务 | 后端接口与可视化页面 | fastapi, uvicorn, streamlit |
+| 数据采集 | 请求网页、解析页面、异步抓取 | httpx, selenium, beautifulsoup4, aiohttp |
+| 数据与机器学习 | 数据处理、建模、调参 | numpy, pandas, scikit-learn, xgboost, optuna |
+| 视觉与 VLM | 图片处理、视觉模型调用 | pillow, opencv-python-headless, torch, transformers |
+| Agent 与 LLM | 智能体流程和模型接口 | openai, langchain, langgraph |
+| 存储与配置 | 数据库、环境变量、日志 | sqlalchemy, alembic, python-dotenv, loguru |
+
+## 4. 基础配置建议
+
+如果后续脚本需要读取 API Key、数据库地址或其他本地配置，建议复制 `.env.example`：
+
+```bash
+cp .env.example .env
+```
+
+然后按需编辑 `.env`。不要把包含真实密钥的 `.env` 提交到 Git。
+
+常见目录约定：
+
+```text
+data/
+  wzry_skins/
+    skins.sqlite3      # 王者荣耀皮肤元数据 SQLite 数据库
+    images/            # 爬取到的皮肤图片
+hero-skin-image/       # 本地皮肤图片与英雄 JSON 数据
+crawlers/              # 数据采集脚本
+vlm/                   # 本地视觉模型测试脚本
+```
+
+## 5. 运行王者荣耀皮肤采集脚本
+
+当前可直接运行的采集脚本是：
+
+```text
+crawlers/wzry_skin_crawler.py
+```
+
+它会从王者荣耀官网 JSON 数据源读取皮肤信息，保存元数据到 SQLite，并下载皮肤图片到本地。
+
+### 快速试跑
+
+先只拉取少量数据，确认网络、目录和数据库写入都正常：
+
+```bash
+python3 crawlers/wzry_skin_crawler.py --limit 10
+```
+
+默认输出位置：
+
+```text
+data/wzry_skins/skins.sqlite3
+data/wzry_skins/images/
+```
+
+脚本结束时会打印类似信息：
+
+```text
+skins=10 downloaded_or_existing=10 image_failed=0
+db=data/wzry_skins/skins.sqlite3
+images=data/wzry_skins/images
+```
+
+### 常用参数
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `--limit` | 只采集前 N 条，`0` 表示全量 | `--limit 50` |
+| `--output-dir` | 图片保存目录 | `--output-dir data/wzry_skins/images` |
+| `--db` | SQLite 数据库保存路径 | `--db data/wzry_skins/skins.sqlite3` |
+| `--sleep` | 每次图片请求之间的等待秒数 | `--sleep 0.1` |
+| `--overwrite` | 已存在图片也重新下载 | `--overwrite` |
+
+全量采集示例：
+
+```bash
+python3 crawlers/wzry_skin_crawler.py --sleep 0.05
+```
+
+重新下载图片示例：
+
+```bash
+python3 crawlers/wzry_skin_crawler.py --overwrite
+```
+
+## 6. 查看采集结果
+
+采集完成后，可以用 SQLite 简单检查数据：
+
+```bash
+sqlite3 data/wzry_skins/skins.sqlite3 "select count(*) from skins;"
+sqlite3 data/wzry_skins/skins.sqlite3 "select hero_name, skin_name, quality, price_text from skins limit 10;"
+```
+
+也可以查看本地图片数量：
+
+```bash
+find data/wzry_skins/images -type f | wc -l
+```
+
+## 7. 检查本地 hero-skin-image 数据
+
+仓库中还有一个本地图片数据目录：
+
+```text
+hero-skin-image/
+```
+
+`test_wzry_skins.py` 会检查其中的 `wzry-heros.json` 结构，并统计本地皮肤图片覆盖情况：
+
+```bash
+python3 test_wzry_skins.py
+```
+
+这个脚本适合用来确认本地图片集是否完整，以及英雄、皮肤、图片文件名之间是否能够对应。
+
+## 8. 运行本地 VLM 图片评估脚本
+
+如果本机安装并启动了 Ollama，可以使用 `vlm/ollama_vlm_test.py` 对单张皮肤图做视觉模型测试。
+
+先确认 Ollama 可用：
+
+```bash
+ollama list
+```
+
+如缺少模型，可按脚本提示拉取，例如：
+
+```bash
+ollama pull qwen2.5vl:3b
+```
+
+运行示例：
+
+```bash
+python3 vlm/ollama_vlm_test.py \
+  --models qwen2.5vl:3b \
+  --image hero-skin-image/3phone-bigskin-images/李白-3-千年之狐.jpg \
+  --prompt l2 \
+  --timeout 240
+```
+
+参数说明：
+
+| 参数 | 说明 |
+|------|------|
+| `--host` | Ollama 服务地址，默认 `http://127.0.0.1:11434` |
+| `--models` | 要测试的模型名，多个模型用英文逗号分隔 |
+| `--image` | 输入图片路径 |
+| `--prompt` | 使用的评估模板，当前支持 `l1`、`l2` |
+| `--timeout` | 单个模型请求超时时间 |
+
+## 9. 常见问题
+
+### ModuleNotFoundError
+
+通常是没有安装依赖，或当前终端没有激活虚拟环境：
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 图片下载失败
+
+可能是网络波动或源站限流。可以调大请求间隔后重试：
+
+```bash
+python3 crawlers/wzry_skin_crawler.py --sleep 0.2
+```
+
+### Ollama 连接失败
+
+确认 Ollama 服务已启动，并且 `--host` 地址正确：
+
+```bash
+ollama list
+```
+
+如果该命令也失败，先启动或安装 Ollama。
+
+## 10. 推荐的新手运行顺序
+
+```bash
+cd /home/mzhyui/git/emogame
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+python3 crawlers/wzry_skin_crawler.py --limit 10
+sqlite3 data/wzry_skins/skins.sqlite3 "select count(*) from skins;"
+python3 test_wzry_skins.py
+```
+
+完成以上步骤后，本地 Python 环境、采集脚本、SQLite 数据写入和本地图片数据检查就基本跑通了。

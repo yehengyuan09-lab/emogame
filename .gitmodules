@@ -1,0 +1,6 @@
+[submodule "hero-skin-image"]
+	path = hero-skin-image
+	url = https://github.com/yansheng836/hero-skin-image.git
+[submodule "minimind"]
+	path = minimind
+	url = https://github.com/jingyaogong/minimind.git

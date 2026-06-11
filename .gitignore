@@ -1,0 +1,55 @@
+# Python virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment
+.env
+
+# Data (generated)
+data/*.db
+data/*.pkl
+data/*.json
+!data/migrations/
+data/wzry_skins/*
+!data/wzry_skins/.gitkeep
+
+# Models (large files)
+models/*.pkl
+models/*.json
+models/*.ubj
+vlm/model_cache/
+*.bin
+*.safetensors
+
+# Jupyter
+notebooks/.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+.docker/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+ppt/
