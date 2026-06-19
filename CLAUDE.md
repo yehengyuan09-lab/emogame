@@ -10,7 +10,7 @@ B2B SaaS 智能体，量化游戏虚拟商品（皮肤、特效、表情、头�
 - **语言**: Python 3.12
 - **后端**: FastAPI
 - **前端**: Streamlit
-- **VLM**: InternVL2-4B + Qwen2-VL-7B + GPT-4o-mini
+- **VLM**: Qwen2.5VL-3B (Ollama) + AutoDL GPT-5.4-mini API
 - **ML**: XGBoost + scikit-learn + Optuna
 - **Agent**: LangGraph + LangChain
 - **数据**: SQLite → PostgreSQL, Redis

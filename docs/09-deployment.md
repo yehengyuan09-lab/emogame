@@ -154,7 +154,7 @@ Phase 5 (Week 9-10): Polish & Deploy
 
 ```bash
 # .env.example
-OPENAI_API_KEY=sk-xxx
+AUTODL_TOKEN=sk-xxx
 DATABASE_URL=sqlite:///data/emogame.db
 REDIS_URL=redis://localhost:6379
 VLM_MODEL_DIR=/models

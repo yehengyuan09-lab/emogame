@@ -23,6 +23,7 @@ models/*.pkl
 models/*.json
 models/*.ubj
 vlm/model_cache/
+data/vlm_cache/
 *.bin
 *.safetensors
 
