@@ -4,3 +4,6 @@
 [submodule "minimind"]
 	path = minimind
 	url = https://github.com/jingyaogong/minimind.git
+[submodule "weiboSpider"]
+	path = weiboSpider
+	url = https://github.com/dataabc/weiboSpider.git
