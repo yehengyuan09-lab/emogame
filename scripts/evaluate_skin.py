@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from data.skin_repository import DEFAULT_DB_PATH, SkinRepository  # noqa: E402
+from data.market_signal_repository import MarketSignalRepository  # noqa: E402
 from feature_engineering.features import MarketValidationSignals  # noqa: E402
 from feature_engineering.pipeline import FeatureBuilder  # noqa: E402
 from models.rule_engine import RuleEngine  # noqa: E402
@@ -81,6 +82,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--source-key", help="Internal source key, e.g. 105-02.")
     parser.add_argument("--search", help="Search by hero, skin, or skin id and evaluate the first match.")
     parser.add_argument("--signals-json", type=Path, help="Optional market validation signals JSON.")
+    parser.add_argument("--ignore-db-signals", action="store_true", help="Do not load signals from SQLite.")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     return parser.parse_args()
 
@@ -95,7 +97,12 @@ def main() -> int:
     repo = SkinRepository(args.db)
     try:
         source_key = resolve_source_key(repo, args.source_key, args.search)
-        signals = MarketValidationSignals.from_dict(load_signal_payload(args.signals_json, source_key))
+        if args.signals_json:
+            signals = MarketValidationSignals.from_dict(load_signal_payload(args.signals_json, source_key))
+        elif args.ignore_db_signals:
+            signals = MarketValidationSignals()
+        else:
+            signals = MarketSignalRepository(args.db).get_signals(source_key)
         features = FeatureBuilder(repo).build(source_key, signals)
         result = RuleEngine().evaluate(features).to_dict()
     except ValueError as exc:

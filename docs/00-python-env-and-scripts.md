@@ -186,6 +186,22 @@ python3 scripts/evaluate_skin.py --search 地狱岩魂
 python3 scripts/evaluate_skin.py --source-key 105-02 --signals-json market_signals.json --json
 ```
 
+也可以先导入本地证据库：
+
+```bash
+python3 scripts/import_market_signals.py market_signals.json
+python3 scripts/evaluate_skin.py --source-key 105-02
+```
+
+采集已知 B 站视频 URL/BVID 的舆论证据：
+
+```bash
+python3 scripts/fetch_bilibili_evidence.py \
+  --source-key 105-02 \
+  --video https://www.bilibili.com/video/BVxxxxxxxxxx \
+  --aspect-tags visual,feel,craftsmanship
+```
+
 当前评估系统会输出皮肤维度证据分、官方弱先验、置信度、验证状态和缺失信号提示。没有市场信号时不会输出最终研究分，只会提示 `insufficient_market_evidence`。
 
 也可以查看本地图片数量：

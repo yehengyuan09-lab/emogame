@@ -101,6 +101,24 @@ python scripts/evaluate_skin.py --source-key 105-02 --json
 python scripts/evaluate_skin.py --source-key 105-02 --signals-json market_signals.json
 ```
 
+也可以先把证据导入 SQLite，再直接评估：
+
+```bash
+python scripts/import_market_signals.py market_signals.json
+python scripts/evaluate_skin.py --source-key 105-02
+```
+
+B 站第一阶段不做搜索爬虫，只支持已知视频 URL/BVID 的证据采集：
+
+```bash
+python scripts/fetch_bilibili_evidence.py \
+  --source-key 105-02 \
+  --video https://www.bilibili.com/video/BVxxxxxxxxxx \
+  --aspect-tags visual,feel,craftsmanship
+```
+
+该脚本会存储视频标题、作者、URL、播放、弹幕、评论、收藏、投币、分享、点赞等指标，并聚合成 `video_views`、`discussion_count` 和传播互动量。观感、手感、品质、收藏价值、性价比、购买意愿仍需人工标注或后续 NLP 归因后写入。
+
 没有市场信号时，系统只输出 `official_prior_score`，`evaluation_score = null`，`validation_status = insufficient_market_evidence`；证据覆盖足够时会变成 `evidence_validated`。
 
 ```python

@@ -115,6 +115,16 @@ python scripts/check_wzry_data.py --json
 
 第一阶段暂不抓取微博、贴吧、NGA、Bilibili 和二级市场数据。这些来源在官方数据闭环稳定后再接入，用于补充热度、口碑和价格事件。
 
+### 舆论证据采集边界
+
+当前已接入的是“已知证据导入”，不是全网搜索爬虫：
+
+- `scripts/import_market_signals.py`：导入人工整理或半自动整理的维度证据。
+- `scripts/fetch_bilibili_evidence.py`：对已知 B 站视频 URL/BVID 拉取视频指标。
+- `data/market_signal_repository.py`：存储聚合信号和原始证据条目。
+
+这样可以先保证每条证据可追溯，避免把搜索噪声直接灌进评分系统。后续再做微博、贴吧、评论文本抓取和 NLP 维度归因。
+
 ```python
 # crawlers/manager.py
 class CrawlerManager:
