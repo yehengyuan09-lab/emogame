@@ -54,3 +54,4 @@ build/
 *.egg-info/
 
 ppt/
+weibo_comments/
