@@ -119,6 +119,16 @@ python scripts/fetch_bilibili_evidence.py \
 
 该脚本会存储视频标题、作者、URL、播放、弹幕、评论、收藏、投币、分享、点赞等指标，并聚合成 `video_views`、`discussion_count` 和传播互动量。观感、手感、品质、收藏价值、性价比、购买意愿仍需人工标注或后续 NLP 归因后写入。
 
+微博评论可以先抓取成 JSON，再导入到明确的皮肤 `source_key`：
+
+```bash
+python scripts/import_weibo_evidence.py \
+  data/weibo_comments/wzry_skin_comments_2026-06-23.json \
+  --source-key 105-02
+```
+
+该导入器会保存原始评论证据，并按关键词保守归因到观感、手感、品质、收藏价值、性价比、购买意愿和整体情绪。维度分只有在足够多评论命中同一维度时才输出，避免把单条评论放大成最终评分。
+
 没有市场信号时，系统只输出 `official_prior_score`，`evaluation_score = null`，`validation_status = insufficient_market_evidence`；证据覆盖足够时会变成 `evidence_validated`。
 
 ```python

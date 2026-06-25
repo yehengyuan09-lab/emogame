@@ -828,7 +828,11 @@ async def main() -> None:
     )
 
     start = time.monotonic()
-    results = await crawl(config)
+    try:
+        results = await crawl(config)
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
     elapsed = time.monotonic() - start
 
     # ── Output ──

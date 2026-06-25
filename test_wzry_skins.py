@@ -10,7 +10,12 @@ Validates:
 
 import json
 import os
+import sys
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # Paths
 SUBMODULE_DIR = Path(__file__).parent / "hero-skin-image"

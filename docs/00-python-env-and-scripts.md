@@ -202,6 +202,14 @@ python3 scripts/fetch_bilibili_evidence.py \
   --aspect-tags visual,feel,craftsmanship
 ```
 
+导入已经抓取好的微博评论证据：
+
+```bash
+python3 scripts/import_weibo_evidence.py \
+  data/weibo_comments/wzry_skin_comments_2026-06-23.json \
+  --source-key 105-02
+```
+
 当前评估系统会输出皮肤维度证据分、官方弱先验、置信度、验证状态和缺失信号提示。没有市场信号时不会输出最终研究分，只会提示 `insufficient_market_evidence`。
 
 也可以查看本地图片数量：

@@ -121,9 +121,11 @@ python scripts/check_wzry_data.py --json
 
 - `scripts/import_market_signals.py`：导入人工整理或半自动整理的维度证据。
 - `scripts/fetch_bilibili_evidence.py`：对已知 B 站视频 URL/BVID 拉取视频指标。
+- `crawlers/weibo_skin_comment_crawler.py`：抓取王者荣耀官方微博或指定 MID 的皮肤评论。
+- `scripts/import_weibo_evidence.py`：把已抓取的微博评论导入到某个明确 `source_key` 的舆论证据库。
 - `data/market_signal_repository.py`：存储聚合信号和原始证据条目。
 
-这样可以先保证每条证据可追溯，避免把搜索噪声直接灌进评分系统。后续再做微博、贴吧、评论文本抓取和 NLP 维度归因。
+微博评论必须显式指定 `source_key` 后才能进入评估，避免把泛讨论或多皮肤联动微博错误归因到单个皮肤。这样可以先保证每条证据可追溯，避免把搜索噪声直接灌进评分系统。后续再扩展贴吧、NGA、评论文本抓取和更细的 NLP 维度归因。
 
 ```python
 # crawlers/manager.py

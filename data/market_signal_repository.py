@@ -274,10 +274,21 @@ class MarketSignalRepository:
             metrics = item.get("metrics") or {}
             evidence_count += 1
             video_views += int(metrics.get("view") or metrics.get("video_views") or 0)
-            discussion_count += int(metrics.get("reply") or 0) + int(metrics.get("danmaku") or 0)
+            discussion_count += sum(
+                int(metrics.get(name) or 0)
+                for name in ("reply", "danmaku", "comment_count", "reply_count", "total_number")
+            )
             marketing_volume += sum(
                 int(metrics.get(name) or 0)
-                for name in ("favorite", "coin", "share", "like")
+                for name in (
+                    "favorite",
+                    "coin",
+                    "share",
+                    "like",
+                    "like_count",
+                    "reposts_count",
+                    "attitudes_count",
+                )
             )
 
         signals = MarketValidationSignals(
