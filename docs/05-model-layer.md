@@ -142,6 +142,14 @@ python scripts/import_weibo_evidence.py \
 
 没有市场信号时，系统只输出 `official_prior_score`，`evaluation_score = null`，`validation_status = insufficient_market_evidence`；证据覆盖足够时会变成 `evidence_validated`。
 
+面向销量的下一层不是直接把 `evaluation_score` 当作销量，而是生成销售动作报告：
+
+```bash
+python scripts/generate_sales_report.py --source-key 105-02
+```
+
+该报告会基于评估结果和市场证据输出 `decision`、`sales_readiness`、购买驱动力、转化阻力、价格动作和缺失证据。证据不足时默认建议继续采集，不建议放量投放或调整价格。
+
 ```python
 class RuleEngine:
     """基于领域知识的情绪溢价规则引擎"""

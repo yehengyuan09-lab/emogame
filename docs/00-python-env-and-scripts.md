@@ -221,6 +221,15 @@ python3 scripts/import_weibo_evidence.py \
 
 当前评估系统会输出皮肤维度证据分、官方弱先验、置信度、验证状态和缺失信号提示。没有市场信号时不会输出最终研究分，只会提示 `insufficient_market_evidence`。
 
+生成面向运营/销售的动作报告：
+
+```bash
+python3 scripts/generate_sales_report.py --source-key 105-02
+python3 scripts/generate_sales_report.py --search 龙胆 --json
+```
+
+销售报告不会把分数直接等同销量，而是输出放量决策、购买驱动力、转化阻力、价格动作建议和缺失证据。
+
 也可以查看本地图片数量：
 
 ```bash

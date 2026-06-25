@@ -181,3 +181,21 @@ CASE_LIBRARY = [
 ## 下一步
 
 - → [08 — 用户工作流与前端](08-user-workflow.md)
+
+## 当前落地入口
+
+仓库已经提供一个轻量销售动作报告 CLI：
+
+```bash
+python scripts/generate_sales_report.py --source-key 105-02
+python scripts/generate_sales_report.py --search 龙胆 --json
+```
+
+该入口复用 `RuleEngine` 的证据优先评估结果，输出：
+
+- `decision`：是否补证据、控制上线、放量投放或先处理价格阻力。
+- `sales_readiness`：销售准备度，不等同于销量预测。
+- `purchase_drivers`：可用于素材和卖点的购买驱动力。
+- `conversion_blockers`：可能压低转化的阻力。
+- `recommended_actions`：运营可执行动作。
+- `evidence_gaps`：还需要补采的舆论、销量或拥有率信号。
