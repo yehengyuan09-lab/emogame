@@ -98,6 +98,21 @@ SQLite 表：
 | `skins` | 皮肤目录与官方增强字段 |
 | `skin_assets` | 图片 URL、本地路径、下载状态和 SHA-256 |
 
+查询与过滤统一通过 `data/skin_repository.py`：
+
+- `list_heroes()`：英雄列表，可按定位和关键词过滤。
+- `list_skins()`：皮肤列表，可按英雄、品质、详情匹配状态、目录来源和主图状态过滤。
+- `search_skins()`：按英雄名、皮肤名或皮肤 ID 搜索。
+- `get_skin()` / `list_assets()`：读取单个皮肤详情和图片资产。
+- `stats()`：输出英雄数、皮肤数、资产数、缺失详情、缺失主图和下载失败数量。
+
+数据质量检查脚本：
+
+```bash
+python scripts/check_wzry_data.py
+python scripts/check_wzry_data.py --json
+```
+
 第一阶段暂不抓取微博、贴吧、NGA、Bilibili 和二级市场数据。这些来源在官方数据闭环稳定后再接入，用于补充热度、口碑和价格事件。
 
 ```python

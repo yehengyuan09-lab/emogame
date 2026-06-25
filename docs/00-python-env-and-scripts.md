@@ -158,6 +158,20 @@ sqlite3 data/wzry_skins/skins.sqlite3 "select hero_name, skin_name, quality, pri
 | `skin_assets` | 每个皮肤的图片 URL、本地路径、下载状态、文件 hash |
 | `crawl_runs` | 每次采集的来源 URL、数量统计和失败数量 |
 
+项目内部读取 SQLite 时应优先使用 `data/skin_repository.py`，不要在前端、模型或 Agent 层重复手写 SQL。
+
+采集后可以运行数据质量检查：
+
+```bash
+python3 scripts/check_wzry_data.py
+```
+
+输出 JSON 方便接入自动化检查：
+
+```bash
+python3 scripts/check_wzry_data.py --json
+```
+
 也可以查看本地图片数量：
 
 ```bash
