@@ -230,6 +230,19 @@ python3 scripts/generate_sales_report.py --search 龙胆 --json
 
 销售报告不会把分数直接等同销量，而是输出放量决策、购买驱动力、转化阻力、价格动作建议和缺失证据。
 
+启动本地 FastAPI 服务：
+
+```bash
+python3 -m uvicorn api.main:app --host 127.0.0.1 --port 8000
+```
+
+核心端点：
+
+- `GET /api/health`
+- `GET /api/skins?search=龙胆`
+- `POST /api/evaluate`
+- `POST /api/sales-report`
+
 也可以查看本地图片数量：
 
 ```bash

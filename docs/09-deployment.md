@@ -137,7 +137,7 @@ Phase 3 (Week 5-6): Model
 Phase 4 (Week 7-8): Agent & Integration
 ├── ⬜ LangGraph 智能体工作流
 ├── ⬜ LLM 报告生成 (GPT-4o-mini)
-├── ⬜ FastAPI 端点 (/api/evaluate, /api/cases 等)
+├── ✅ FastAPI 端点 (/api/skins, /api/evaluate, /api/sales-report)
 ├── ⬜ Streamlit 完整仪表盘
 └── ⬜ 案例库 (10+ 条)
 
