@@ -1,4 +1,12 @@
-"""Rule-based MVP emotional premium evaluator."""
+"""Evidence-first MVP skin evaluator.
+
+This module does not claim to produce a final valuation from official metadata.
+It separates:
+
+- official priors: weak clues from crawler data, used for context only;
+- market/aspect evidence: public opinion and marketing/sales signals that can
+  validate a skin evaluation.
+"""
 
 from __future__ import annotations
 
@@ -9,12 +17,14 @@ from typing import Any
 from feature_engineering.features import SkinFeatureVector
 
 
-DIMENSION_WEIGHTS = {
-    "aesthetic": 0.30,
-    "belonging": 0.20,
-    "showing_off": 0.25,
-    "collection": 0.15,
-    "surprise": 0.10,
+ASPECT_WEIGHTS = {
+    "visual_appeal": 0.18,
+    "in_game_feel": 0.18,
+    "craftsmanship_quality": 0.18,
+    "collection_value": 0.16,
+    "value_for_money": 0.15,
+    "purchase_intent": 0.10,
+    "market_heat": 0.05,
 }
 
 
@@ -23,12 +33,12 @@ class EvaluationResult:
     source_key: str
     hero_name: str
     skin_name: str
-    total_premium: int
-    sub_scores: dict[str, int]
+    evaluation_score: int | None
+    official_prior_score: int
+    aspect_scores: dict[str, int | None]
     confidence: float
     validation_status: str
-    market_signal_score: int | None
-    signal_coverage: float
+    evidence_coverage: float
     warnings: list[str]
     evidence: dict[str, Any]
 
@@ -37,116 +47,118 @@ class EvaluationResult:
             "source_key": self.source_key,
             "hero_name": self.hero_name,
             "skin_name": self.skin_name,
-            "total_premium": self.total_premium,
-            "sub_scores": self.sub_scores,
+            "evaluation_score": self.evaluation_score,
+            "official_prior_score": self.official_prior_score,
+            "aspect_scores": self.aspect_scores,
             "confidence": self.confidence,
             "validation_status": self.validation_status,
-            "market_signal_score": self.market_signal_score,
-            "signal_coverage": self.signal_coverage,
+            "evidence_coverage": self.evidence_coverage,
             "warnings": self.warnings,
             "evidence": self.evidence,
         }
 
 
 class RuleEngine:
-    """Cold-start scorer until labeled market data is available."""
+    """Aspect research evaluator with explicit evidence coverage."""
 
     def evaluate(self, features: SkinFeatureVector) -> EvaluationResult:
-        sub_scores = {
-            "aesthetic": round_score(self._aesthetic(features)),
-            "belonging": round_score(self._belonging(features)),
-            "showing_off": round_score(self._showing_off(features)),
-            "collection": round_score(self._collection(features)),
-            "surprise": round_score(self._surprise(features)),
-        }
-        total = round_score(
-            sum(score * DIMENSION_WEIGHTS[name] for name, score in sub_scores.items())
+        aspect_scores = self._aspect_scores(features)
+        evidence_coverage = self._evidence_coverage(features, aspect_scores)
+        official_prior_score = self._official_prior(features)
+        evaluation_score = self._weighted_score(aspect_scores)
+        confidence = self._confidence(features, evidence_coverage)
+        validation_status = (
+            "evidence_validated" if evidence_coverage >= 0.5 else "insufficient_market_evidence"
         )
-        market_signal_score = self._market_signal_score(features)
-        signal_coverage = features.market_signals.coverage()
-        confidence = self._confidence(features, signal_coverage)
-        warnings = self._warnings(features, signal_coverage)
 
         return EvaluationResult(
             source_key=features.source_key,
             hero_name=features.hero_name,
             skin_name=features.skin_name,
-            total_premium=total,
-            sub_scores=sub_scores,
+            evaluation_score=evaluation_score,
+            official_prior_score=official_prior_score,
+            aspect_scores=aspect_scores,
             confidence=confidence,
-            validation_status="market_validated" if signal_coverage >= 0.5 else "needs_market_validation",
-            market_signal_score=market_signal_score,
-            signal_coverage=round(signal_coverage, 2),
-            warnings=warnings,
+            validation_status=validation_status,
+            evidence_coverage=round(evidence_coverage, 2),
+            warnings=self._warnings(features, evidence_coverage),
             evidence=self._evidence(features),
         )
 
-    def _aesthetic(self, f: SkinFeatureVector) -> float:
-        recent_bonus = 0.5 if f.skin_age_days is not None and f.skin_age_days <= 180 else 0.25
-        return 100 * (
-            0.45 * f.quality_score
-            + 0.20 * bool_score(f.has_primary_asset)
-            + 0.20 * bool_score(f.has_detail_record)
-            + 0.15 * recent_bonus
-        )
-
-    def _belonging(self, f: SkinFeatureVector) -> float:
+    def _aspect_scores(self, f: SkinFeatureVector) -> dict[str, int | None]:
         s = f.market_signals
-        sentiment = clamp01(s.sentiment_score if s.sentiment_score is not None else 0.5)
-        discussion = log_score(s.discussion_count, 10000)
-        views = log_score(s.video_views, 5_000_000)
-        marketing = log_score(s.marketing_volume, 10000)
-        sales = log_score(s.sales_volume, 500_000)
-        return 100 * (0.30 * sentiment + 0.20 * discussion + 0.20 * views + 0.15 * marketing + 0.15 * sales)
+        return {
+            "visual_appeal": optional_score(s.visual_score),
+            "in_game_feel": optional_score(s.feel_score),
+            "craftsmanship_quality": optional_score(s.craftsmanship_score),
+            "collection_value": optional_score(s.collection_score),
+            "value_for_money": optional_score(s.value_score),
+            "purchase_intent": optional_score(s.purchase_intent_score),
+            "market_heat": self._market_heat_score(f),
+        }
 
-    def _showing_off(self, f: SkinFeatureVector) -> float:
-        rare_method = f.is_gacha or f.official_tier >= 4
-        return 100 * (
-            0.45 * f.quality_score
-            + 0.20 * bool_score(f.is_limited)
-            + 0.20 * bool_score(rare_method)
-            + 0.15 * bool_score(f.has_primary_asset)
-        )
-
-    def _collection(self, f: SkinFeatureVector) -> float:
-        ownership = f.market_signals.ownership_rate
-        scarcity = 0.5 if ownership is None else 1 - clamp01(ownership)
-        series_score = clamp01(f.hero_skin_count / 12)
-        rare_quality = bool_score(f.official_tier >= 4)
-        return 100 * (
-            0.35 * bool_score(f.is_limited)
-            + 0.25 * rare_quality
-            + 0.20 * scarcity
-            + 0.20 * series_score
-        )
-
-    def _surprise(self, f: SkinFeatureVector) -> float:
-        acquire_score = acquisition_score(f)
-        spend_score = log_score(f.market_signals.avg_spend_to_obtain, 2000)
-        promo_bonus = bool_score("秒杀" in f.acquire_method or "福利" in f.acquire_method)
-        return 100 * (0.40 * acquire_score + 0.25 * bool_score(f.is_gacha) + 0.20 * spend_score + 0.15 * promo_bonus)
-
-    def _market_signal_score(self, f: SkinFeatureVector) -> int | None:
-        if not f.market_signals.present_fields():
+    def _market_heat_score(self, f: SkinFeatureVector) -> int | None:
+        s = f.market_signals
+        heat_parts = [
+            log_score(s.discussion_count, 10000),
+            log_score(s.video_views, 5_000_000),
+            log_score(s.marketing_volume, 10000),
+            log_score(s.sales_volume, 500_000),
+        ]
+        available = [part for part in heat_parts if part is not None]
+        if not available:
             return None
-        return round_score(self._belonging(f))
+        return round_score(sum(available) / len(available) * 100)
 
-    def _confidence(self, f: SkinFeatureVector, signal_coverage: float) -> float:
-        base = 0.35
-        source_quality = 0.15 * bool_score(f.has_detail_record) + 0.10 * bool_score(f.has_primary_asset)
-        market_quality = 0.40 * signal_coverage
-        return round(clamp01(base + source_quality + market_quality), 2)
+    def _weighted_score(self, aspect_scores: dict[str, int | None]) -> int | None:
+        weighted_sum = 0.0
+        used_weight = 0.0
+        for name, score in aspect_scores.items():
+            if score is None:
+                continue
+            weight = ASPECT_WEIGHTS[name]
+            weighted_sum += score * weight
+            used_weight += weight
+        if used_weight <= 0:
+            return None
+        return round_score(weighted_sum / used_weight)
 
-    def _warnings(self, f: SkinFeatureVector, signal_coverage: float) -> list[str]:
+    def _official_prior(self, f: SkinFeatureVector) -> int:
+        scarcity = 30 * bool_score(f.is_limited or f.is_gacha)
+        quality = 45 * f.quality_score
+        data_quality = 15 * bool_score(f.has_detail_record) + 10 * bool_score(f.has_primary_asset)
+        return round_score(scarcity + quality + data_quality)
+
+    def _evidence_coverage(self, f: SkinFeatureVector, aspect_scores: dict[str, int | None]) -> float:
+        aspect_coverage = sum(1 for score in aspect_scores.values() if score is not None) / len(aspect_scores)
+        data_quality = 0.5 * bool_score(f.has_detail_record) + 0.5 * bool_score(f.has_primary_asset)
+        return clamp01(0.8 * aspect_coverage + 0.2 * data_quality)
+
+    def _confidence(self, f: SkinFeatureVector, evidence_coverage: float) -> float:
+        source_quality = 0.5 * bool_score(f.has_detail_record) + 0.5 * bool_score(f.has_primary_asset)
+        return round(clamp01(0.15 + 0.70 * evidence_coverage + 0.15 * source_quality), 2)
+
+    def _warnings(self, f: SkinFeatureVector, evidence_coverage: float) -> list[str]:
         warnings: list[str] = []
         if not f.has_detail_record:
             warnings.append("missing_official_detail")
         if not f.has_primary_asset:
             warnings.append("missing_primary_asset")
-        if signal_coverage < 0.5:
-            warnings.append("market_validation_incomplete")
-        if f.market_signals.sentiment_score is None:
-            warnings.append("missing_sentiment_score")
+        if evidence_coverage < 0.5:
+            warnings.append("insufficient_public_opinion_evidence")
+        missing_aspects = []
+        for name, value in {
+            "visual_score": f.market_signals.visual_score,
+            "feel_score": f.market_signals.feel_score,
+            "craftsmanship_score": f.market_signals.craftsmanship_score,
+            "collection_score": f.market_signals.collection_score,
+            "value_score": f.market_signals.value_score,
+            "purchase_intent_score": f.market_signals.purchase_intent_score,
+        }.items():
+            if value is None:
+                missing_aspects.append(name)
+        if missing_aspects:
+            warnings.append("missing_aspect_scores:" + ",".join(missing_aspects))
         if f.market_signals.sales_volume is None and f.market_signals.marketing_volume is None:
             warnings.append("missing_sales_or_marketing_volume")
         return warnings
@@ -166,18 +178,12 @@ class RuleEngine:
         }
 
 
-def acquisition_score(f: SkinFeatureVector) -> float:
-    if f.is_gacha:
-        return 0.90
-    if f.is_battle_pass:
-        return 0.65
-    if f.is_event:
-        return 0.60
-    if f.is_shard_exchange:
-        return 0.50
-    if f.is_direct_sale:
-        return 0.30
-    return 0.20
+def optional_score(value: float | None) -> int | None:
+    if value is None:
+        return None
+    if 0 <= value <= 1:
+        return round_score(value * 100)
+    return round_score(value)
 
 
 def bool_score(value: bool) -> float:
@@ -188,8 +194,10 @@ def clamp01(value: float) -> float:
     return min(max(value, 0.0), 1.0)
 
 
-def log_score(value: int | float | None, max_value: int | float) -> float:
-    if value is None or value <= 0:
+def log_score(value: int | float | None, max_value: int | float) -> float | None:
+    if value is None:
+        return None
+    if value <= 0:
         return 0.0
     return clamp01(math.log(value + 1) / math.log(max_value + 1))
 

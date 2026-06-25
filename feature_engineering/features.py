@@ -8,12 +8,19 @@ from typing import Any
 
 @dataclass(slots=True)
 class MarketValidationSignals:
-    """External signals used to validate and calibrate the MVP score.
+    """External signals used to research and calibrate skin evaluation.
 
     All fields are optional because these sources will be collected in later
-    phases. Missing values lower confidence instead of blocking evaluation.
+    phases. Missing values lower confidence instead of being backfilled with
+    arbitrary assumptions.
     """
 
+    visual_score: float | None = None
+    feel_score: float | None = None
+    craftsmanship_score: float | None = None
+    collection_score: float | None = None
+    value_score: float | None = None
+    purchase_intent_score: float | None = None
     sentiment_score: float | None = None
     discussion_count: int | None = None
     video_views: int | None = None
@@ -26,6 +33,12 @@ class MarketValidationSignals:
     def from_dict(cls, data: dict[str, Any] | None) -> "MarketValidationSignals":
         data = data or {}
         return cls(
+            visual_score=_optional_float(data.get("visual_score")),
+            feel_score=_optional_float(data.get("feel_score")),
+            craftsmanship_score=_optional_float(data.get("craftsmanship_score")),
+            collection_score=_optional_float(data.get("collection_score")),
+            value_score=_optional_float(data.get("value_score")),
+            purchase_intent_score=_optional_float(data.get("purchase_intent_score")),
             sentiment_score=_optional_float(data.get("sentiment_score")),
             discussion_count=_optional_int(data.get("discussion_count")),
             video_views=_optional_int(data.get("video_views")),
@@ -39,6 +52,12 @@ class MarketValidationSignals:
         return [
             name
             for name in (
+                "visual_score",
+                "feel_score",
+                "craftsmanship_score",
+                "collection_score",
+                "value_score",
+                "purchase_intent_score",
                 "sentiment_score",
                 "discussion_count",
                 "video_views",
@@ -51,7 +70,18 @@ class MarketValidationSignals:
         ]
 
     def coverage(self) -> float:
-        return len(self.present_fields()) / 7
+        return len(self.present_fields()) / 13
+
+    def aspect_coverage(self) -> float:
+        aspect_fields = (
+            "visual_score",
+            "feel_score",
+            "craftsmanship_score",
+            "collection_score",
+            "value_score",
+            "purchase_intent_score",
+        )
+        return sum(1 for name in aspect_fields if getattr(self, name) is not None) / len(aspect_fields)
 
 
 @dataclass(slots=True)
@@ -105,6 +135,12 @@ class SkinFeatureVector:
             "market_signals": {
                 name: getattr(self.market_signals, name)
                 for name in (
+                    "visual_score",
+                    "feel_score",
+                    "craftsmanship_score",
+                    "collection_score",
+                    "value_score",
+                    "purchase_intent_score",
                     "sentiment_score",
                     "discussion_count",
                     "video_views",

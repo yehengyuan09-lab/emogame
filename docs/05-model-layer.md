@@ -33,7 +33,11 @@
 
 在标注数据不足（<50 条）时，使用加权评分卡：
 
-当前已实现第一版 MVP：
+当前已实现第一版研究型 MVP。它不会把官方元数据硬转成最终分数，而是区分：
+
+- `official_prior_score`：官方品质、限定、获取方式、图片/详情完整度形成的弱先验。
+- `evaluation_score`：来自舆论、营销、销量等外部证据的维度研究分。证据不足时为 `null`。
+- `confidence` / `validation_status`：明确提示当前是否已被外部市场信号验证。
 
 ```bash
 python scripts/evaluate_skin.py --search 地狱岩魂
@@ -55,6 +59,12 @@ python scripts/evaluate_skin.py --source-key 105-02 --json
 
 ```json
 {
+  "visual_score": 0.78,
+  "feel_score": 0.82,
+  "craftsmanship_score": 0.75,
+  "collection_score": 0.68,
+  "value_score": 0.70,
+  "purchase_intent_score": 0.77,
   "sentiment_score": 0.82,
   "discussion_count": 5000,
   "video_views": 1200000,
@@ -70,6 +80,12 @@ python scripts/evaluate_skin.py --source-key 105-02 --json
 ```json
 {
   "105-02": {
+    "visual_score": 0.78,
+    "feel_score": 0.82,
+    "craftsmanship_score": 0.75,
+    "collection_score": 0.68,
+    "value_score": 0.70,
+    "purchase_intent_score": 0.77,
     "sentiment_score": 0.82,
     "discussion_count": 5000,
     "video_views": 1200000,
@@ -85,7 +101,7 @@ python scripts/evaluate_skin.py --source-key 105-02 --json
 python scripts/evaluate_skin.py --source-key 105-02 --signals-json market_signals.json
 ```
 
-没有市场信号时，系统仍输出分数，但 `validation_status` 会是 `needs_market_validation`，置信度会较低；信号覆盖足够时会变成 `market_validated`。
+没有市场信号时，系统只输出 `official_prior_score`，`evaluation_score = null`，`validation_status = insufficient_market_evidence`；证据覆盖足够时会变成 `evidence_validated`。
 
 ```python
 class RuleEngine:

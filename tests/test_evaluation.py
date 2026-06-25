@@ -91,10 +91,10 @@ class EvaluationTest(unittest.TestCase):
         features = FeatureBuilder(self.repo, reference_date=date(2024, 7, 1)).build("105-01")
         result = RuleEngine().evaluate(features)
 
-        self.assertEqual(result.validation_status, "needs_market_validation")
-        self.assertIn("market_validation_incomplete", result.warnings)
-        self.assertIsNone(result.market_signal_score)
-        self.assertGreater(result.total_premium, 0)
+        self.assertEqual(result.validation_status, "insufficient_market_evidence")
+        self.assertIn("insufficient_public_opinion_evidence", result.warnings)
+        self.assertIsNone(result.evaluation_score)
+        self.assertGreater(result.official_prior_score, 0)
 
     def test_market_signals_raise_confidence_and_validate(self):
         builder = FeatureBuilder(self.repo, reference_date=date(2024, 7, 1))
@@ -102,6 +102,12 @@ class EvaluationTest(unittest.TestCase):
         features = builder.build(
             "105-01",
             MarketValidationSignals(
+                visual_score=0.75,
+                feel_score=0.82,
+                craftsmanship_score=0.78,
+                collection_score=0.66,
+                value_score=0.72,
+                purchase_intent_score=0.80,
                 sentiment_score=0.85,
                 discussion_count=8000,
                 video_views=2_000_000,
@@ -113,10 +119,10 @@ class EvaluationTest(unittest.TestCase):
         )
         result = RuleEngine().evaluate(features)
 
-        self.assertEqual(result.validation_status, "market_validated")
+        self.assertEqual(result.validation_status, "evidence_validated")
         self.assertGreater(result.confidence, baseline.confidence)
-        self.assertGreater(result.sub_scores["belonging"], baseline.sub_scores["belonging"])
-        self.assertIsNotNone(result.market_signal_score)
+        self.assertIsNotNone(result.evaluation_score)
+        self.assertGreater(result.aspect_scores["in_game_feel"], 0)
 
 
 if __name__ == "__main__":

@@ -51,16 +51,18 @@ def resolve_source_key(repo: SkinRepository, source_key: str | None, search: str
 def print_text(result: dict[str, Any]) -> None:
     print(f"{result['hero_name']} / {result['skin_name']}")
     print("=" * 32)
-    print(f"emotional premium: {result['total_premium']}/100")
+    score = result["evaluation_score"]
+    print(f"evidence score:    {score if score is not None else 'N/A'}")
+    print(f"official prior:    {result['official_prior_score']}/100")
     print(f"confidence:        {result['confidence']:.2f}")
     print(f"validation:        {result['validation_status']}")
-    if result["market_signal_score"] is not None:
-        print(f"market signal:     {result['market_signal_score']}/100")
+    print(f"evidence coverage: {result['evidence_coverage']:.2f}")
 
-    print("\nsub scores")
+    print("\naspect scores")
     print("-" * 32)
-    for name, score in result["sub_scores"].items():
-        print(f"{name:12s} {score:3d}")
+    for name, aspect_score in result["aspect_scores"].items():
+        value = f"{aspect_score:3d}" if aspect_score is not None else "N/A"
+        print(f"{name:24s} {value}")
 
     print("\nwarnings")
     print("-" * 32)
