@@ -108,7 +108,7 @@ python scripts/import_market_signals.py market_signals.json
 python scripts/evaluate_skin.py --source-key 105-02
 ```
 
-B 站第一阶段不做搜索爬虫，只支持已知视频 URL/BVID 的证据采集：
+B 站支持两种证据采集方式。第一种是已知视频 URL/BVID 的稳定采集：
 
 ```bash
 python scripts/fetch_bilibili_evidence.py \
@@ -118,6 +118,17 @@ python scripts/fetch_bilibili_evidence.py \
 ```
 
 该脚本会存储视频标题、作者、URL、播放、弹幕、评论、收藏、投币、分享、点赞等指标，并聚合成 `video_views`、`discussion_count` 和传播互动量。观感、手感、品质、收藏价值、性价比、购买意愿仍需人工标注或后续 NLP 归因后写入。
+
+第二种是按皮肤 `source_key` 搜索并导入。该路径参考 Agent-Reach 的 B 站路由：优先可由 `bili-cli` 增强，当前本地可用的是 B 站 `search/all/v2` 公共搜索 API。
+
+```bash
+python scripts/search_bilibili_evidence.py \
+  --source-key 105-02 \
+  --limit 5 \
+  --json
+```
+
+默认查询会由 `王者荣耀 + 英雄名 + 皮肤名 + 皮肤` 组成，并要求搜索结果标题或描述命中英雄名/皮肤名，降低泛热视频误归因风险。
 
 微博评论可以先抓取成 JSON，再导入到明确的皮肤 `source_key`：
 

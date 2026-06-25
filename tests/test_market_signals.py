@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from crawlers.bilibili_evidence import extract_bvid
+from crawlers.bilibili_evidence import extract_bvid, parse_bilibili_search_results
 from crawlers.wzry_skin_crawler import HeroRecord, SkinRecord, ensure_schema
 from crawlers.wzry_skin_crawler import save_hero, save_skin
 from data.market_signal_repository import MarketSignalRepository
@@ -71,6 +71,36 @@ class MarketSignalRepositoryTest(unittest.TestCase):
     def test_extract_bvid(self):
         self.assertEqual(extract_bvid("https://www.bilibili.com/video/BV1xx411c7mD"), "BV1xx411c7mD")
         self.assertEqual(extract_bvid("BV1xx411c7mD"), "BV1xx411c7mD")
+
+    def test_parse_bilibili_search_results(self):
+        payload = {
+            "code": 0,
+            "data": {
+                "result": [
+                    {"result_type": "tips", "data": []},
+                    {
+                        "result_type": "video",
+                        "data": [
+                            {
+                                "bvid": "BV1xx411c7mD",
+                                "title": "<em class=\"keyword\">王者荣耀</em> 皮肤测评",
+                                "author": "UP主",
+                                "play": "1,234",
+                                "danmaku": 12,
+                                "description": "赵云 新皮肤 手感",
+                            }
+                        ],
+                    },
+                ]
+            },
+        }
+
+        results = parse_bilibili_search_results(payload)
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].bvid, "BV1xx411c7mD")
+        self.assertEqual(results[0].title, "王者荣耀 皮肤测评")
+        self.assertEqual(results[0].play, 1234)
 
     def test_manual_import_and_evaluation(self):
         import_payload(

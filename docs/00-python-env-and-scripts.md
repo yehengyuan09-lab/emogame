@@ -202,6 +202,15 @@ python3 scripts/fetch_bilibili_evidence.py \
   --aspect-tags visual,feel,craftsmanship
 ```
 
+按皮肤自动搜索 B 站并导入命中的视频证据：
+
+```bash
+python3 scripts/search_bilibili_evidence.py \
+  --source-key 105-02 \
+  --limit 5 \
+  --json
+```
+
 导入已经抓取好的微博评论证据：
 
 ```bash
