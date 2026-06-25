@@ -172,13 +172,29 @@ python3 scripts/check_wzry_data.py
 python3 scripts/check_wzry_data.py --json
 ```
 
+## 7. 运行单皮肤情绪溢价评估
+
+采集和查询层跑通后，可以对单个皮肤执行 MVP 规则评分：
+
+```bash
+python3 scripts/evaluate_skin.py --search 地狱岩魂
+```
+
+如果已经有舆论、营销或销量验证信号，可以通过 JSON 注入：
+
+```bash
+python3 scripts/evaluate_skin.py --source-key 105-02 --signals-json market_signals.json --json
+```
+
+当前评估系统会输出五维度分数、总情绪溢价分、置信度、验证状态和缺失信号提示。没有市场信号时分数仍可用，但会提示 `needs_market_validation`。
+
 也可以查看本地图片数量：
 
 ```bash
 find data/wzry_skins/images -type f | wc -l
 ```
 
-## 7. 检查本地 hero-skin-image 数据
+## 8. 检查本地 hero-skin-image 数据
 
 仓库中还有一个本地图片数据目录：
 
@@ -194,7 +210,7 @@ python3 test_wzry_skins.py
 
 这个脚本适合用来确认本地图片集是否完整，以及英雄、皮肤、图片文件名之间是否能够对应。
 
-## 8. 运行本地 VLM 图片评估脚本
+## 9. 运行本地 VLM 图片评估脚本
 
 如果本机安装并启动了 Ollama，可以使用 `vlm/ollama_vlm_test.py` 对单张皮肤图做视觉模型测试。
 
@@ -230,7 +246,7 @@ python3 vlm/ollama_vlm_test.py \
 | `--prompt` | 使用的评估模板，当前支持 `l1`、`l2` |
 | `--timeout` | 单个模型请求超时时间 |
 
-## 9. 常见问题
+## 10. 常见问题
 
 ### ModuleNotFoundError
 
@@ -259,7 +275,7 @@ ollama list
 
 如果该命令也失败，先启动或安装 Ollama。
 
-## 10. 推荐的新手运行顺序
+## 11. 推荐的新手运行顺序
 
 ```bash
 cd /home/mzhyui/git/emogame
@@ -269,6 +285,8 @@ pip install -r requirements.txt
 
 python3 crawlers/wzry_skin_crawler.py --limit 10
 sqlite3 data/wzry_skins/skins.sqlite3 "select count(*) from skins;"
+python3 scripts/check_wzry_data.py
+python3 scripts/evaluate_skin.py --search 地狱岩魂
 python3 test_wzry_skins.py
 ```
 

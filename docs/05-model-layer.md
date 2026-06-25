@@ -33,6 +33,60 @@
 
 在标注数据不足（<50 条）时，使用加权评分卡：
 
+当前已实现第一版 MVP：
+
+```bash
+python scripts/evaluate_skin.py --search 地狱岩魂
+python scripts/evaluate_skin.py --source-key 105-02 --json
+```
+
+实现文件：
+
+| 文件 | 说明 |
+|------|------|
+| `feature_engineering/features.py` | 评分特征与市场验证信号数据结构 |
+| `feature_engineering/pipeline.py` | 从 SQLite 皮肤数据构建评分特征 |
+| `models/rule_engine.py` | 五维度规则评分与置信度计算 |
+| `scripts/evaluate_skin.py` | 单皮肤评估 CLI |
+
+### 市场验证信号
+
+官方数据只能支撑冷启动分数，最终需要舆论和营销量验证。CLI 支持传入 JSON：
+
+```json
+{
+  "sentiment_score": 0.82,
+  "discussion_count": 5000,
+  "video_views": 1200000,
+  "marketing_volume": 3000,
+  "sales_volume": 100000,
+  "avg_spend_to_obtain": 180,
+  "ownership_rate": 0.25
+}
+```
+
+也可以按 `source_key` 组织多皮肤信号：
+
+```json
+{
+  "105-02": {
+    "sentiment_score": 0.82,
+    "discussion_count": 5000,
+    "video_views": 1200000,
+    "marketing_volume": 3000,
+    "sales_volume": 100000
+  }
+}
+```
+
+运行：
+
+```bash
+python scripts/evaluate_skin.py --source-key 105-02 --signals-json market_signals.json
+```
+
+没有市场信号时，系统仍输出分数，但 `validation_status` 会是 `needs_market_validation`，置信度会较低；信号覆盖足够时会变成 `market_validated`。
+
 ```python
 class RuleEngine:
     """基于领域知识的情绪溢价规则引擎"""
