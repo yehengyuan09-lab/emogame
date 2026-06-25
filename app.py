@@ -14,6 +14,7 @@ from data.skin_repository import DEFAULT_DB_PATH, SkinRepository
 from feature_engineering.features import MarketValidationSignals
 from feature_engineering.pipeline import FeatureBuilder
 from models.rule_engine import RuleEngine
+from models.sales_deviation import compare_score_to_sales, sales_blind_signals
 
 
 ASPECT_LABELS = {
@@ -64,10 +65,15 @@ def build_payload(
     features = FeatureBuilder(repo).build(source_key, signals)
     evaluation = RuleEngine().evaluate(features)
     report = SalesAdvisor().advise(features, evaluation)
+    evidence = MarketSignalRepository(db_path).list_evidence(source_key)
+    score_features = FeatureBuilder(repo).build(source_key, sales_blind_signals(signals))
+    gap_evaluation = RuleEngine().evaluate(score_features)
+    sales_gap = compare_score_to_sales(features, gap_evaluation, evidence)
     return {
         "skin": features.to_dict(),
         "evaluation": evaluation.to_dict(),
         "sales_report": report.to_dict(),
+        "sales_gap": sales_gap,
     }
 
 
@@ -140,16 +146,19 @@ def render_sidebar() -> tuple[Path, str | None, MarketValidationSignals | None]:
 def render_header(payload: dict[str, Any]) -> None:
     report = payload["sales_report"]
     evaluation = payload["evaluation"]
+    sales_gap = payload["sales_gap"]
     st.title(f"{report['hero_name']} / {report['skin_name']}")
     st.caption("证据优先评估。分数不是销量预测，销售动作必须由市场证据验证。")
 
-    cols = st.columns(5)
+    cols = st.columns(6)
     cols[0].metric("销售决策", report["decision"])
     cols[1].metric("销售准备度", f"{report['sales_readiness']}/100")
     score = evaluation["evaluation_score"] if evaluation["evaluation_score"] is not None else "N/A"
     cols[2].metric("证据分", score)
     cols[3].metric("官方先验", f"{evaluation['official_prior_score']}/100")
     cols[4].metric("置信度", f"{evaluation['confidence']:.2f}")
+
+    cols[5].metric("Sales gap", sales_gap["gap"] if sales_gap["gap"] is not None else "N/A")
 
     st.markdown(
         f"<p class='decision'>{report['decision_reason']}</p>",
@@ -206,6 +215,22 @@ def render_evidence_tab(payload: dict[str, Any]) -> None:
             st.write(f"- `{gap}`")
 
 
+def render_sales_gap_tab(payload: dict[str, Any]) -> None:
+    gap = payload["sales_gap"]
+    cols = st.columns(4)
+    cols[0].metric("Score", f"{gap['score']}/100")
+    cols[1].metric("Sales score", f"{gap['sales_score']}/100" if gap["sales_score"] is not None else "N/A")
+    cols[2].metric("Gap", gap["gap"] if gap["gap"] is not None else "N/A")
+    cols[3].metric("Confidence", f"{gap['confidence']:.2f}")
+    st.write(f"Direction: `{gap['gap_direction']}`")
+    st.write(gap["interpretation"])
+    if gap.get("sales_evidence"):
+        st.json(gap["sales_evidence"])
+    st.subheader("Warnings")
+    for warning in gap["warnings"] or ["none"]:
+        st.write(f"- `{warning}`")
+
+
 def render_skin_tab(payload: dict[str, Any]) -> None:
     skin = payload["skin"]
     fields = {
@@ -241,14 +266,16 @@ def main() -> None:
         return
 
     render_header(payload)
-    tabs = st.tabs(["销售动作", "证据结构", "皮肤信息", "JSON"])
+    tabs = st.tabs(["销售动作", "评分/销量偏差", "证据结构", "皮肤信息", "JSON"])
     with tabs[0]:
         render_sales_tab(payload)
     with tabs[1]:
-        render_evidence_tab(payload)
+        render_sales_gap_tab(payload)
     with tabs[2]:
-        render_skin_tab(payload)
+        render_evidence_tab(payload)
     with tabs[3]:
+        render_skin_tab(payload)
+    with tabs[4]:
         st.download_button(
             "下载 JSON",
             data=json.dumps(payload, ensure_ascii=False, indent=2),

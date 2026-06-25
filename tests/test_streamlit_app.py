@@ -92,6 +92,7 @@ class StreamlitAppHelperTest(unittest.TestCase):
         self.assertEqual(payload["skin"]["source_key"], "107-08")
         self.assertIn("sales_report", payload)
         self.assertIn("evaluation", payload)
+        self.assertIn("sales_gap", payload)
 
 
 if __name__ == "__main__":

@@ -311,6 +311,21 @@ data_size=500 → alpha=0.33 (几乎纯 ML)
 | MAE | < 10 (满分 100) | 平均绝对误差 |
 | 维度一致性 | > 0.8 | 五维度排序与人工标注的 Spearman 相关系数 |
 
+## 销量偏差校验
+
+评分和销量的关系必须拆开处理：
+
+1. `evaluation_score` 用观感、手感、品质、收藏、性价比、购买意愿和非销量热度证据计算。
+2. 销量证据单独进入 `opinion_evidence_items`，可以是真实销量、估算销量、销量榜名次、销量上限/下限。
+3. `models.sales_deviation.compare_score_to_sales` 先计算 sales-blind score，再和 `sales_score` 比较，输出 `gap` 和 `gap_direction`。
+
+这样可以避免把销量写入评分后再拿评分解释销量。当前偏差方向：
+
+- `aligned`：评分与销量代理基本一致。
+- `score_above_sales`：评分高于销量代理，可能是价格、渠道、转化或英雄热度问题。
+- `sales_above_score`：销量高于评分，说明 IP、人气、返场、联动或渠道需求被当前评分低估。
+- `insufficient_sales_data`：没有可用销量证据。
+
 ## 下一步
 
 - → [06 — 智能体执行架构](06-agent-architecture.md)

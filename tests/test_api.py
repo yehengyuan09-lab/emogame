@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from api.main import app
 from crawlers.wzry_skin_crawler import AssetRecord, HeroRecord, SkinRecord, ensure_schema
 from crawlers.wzry_skin_crawler import save_asset, save_hero, save_skin
+from data.market_signal_repository import MarketSignalRepository
 
 
 class ApiTest(unittest.TestCase):
@@ -118,6 +119,26 @@ class ApiTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["sales_report"]["decision"], "collect_more_evidence")
+
+    def test_sales_gap(self):
+        market_repo = MarketSignalRepository(self.db_path)
+        market_repo.add_evidence(
+            "107-08",
+            platform="sales_public",
+            external_id="sales-demo",
+            metrics={"estimated_sales_volume": 1_000_000, "sales_volume_relation": "estimated"},
+        )
+        market_repo.aggregate_evidence_signals("107-08")
+
+        response = self.client.post(
+            "/api/sales-gap",
+            params={"db": str(self.db_path)},
+            json={"source_key": "107-08"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("sales_gap", response.json())
+        self.assertEqual(response.json()["sales_gap"]["sales_basis"], "estimated_sales_volume")
 
 
 if __name__ == "__main__":

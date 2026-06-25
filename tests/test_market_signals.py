@@ -141,6 +141,9 @@ class MarketSignalRepositoryTest(unittest.TestCase):
                 "coin": 40,
                 "share": 50,
                 "like": 60,
+                "estimated_sales_volume": 120000,
+                "avg_spend_to_obtain": 88.8,
+                "ownership_rate": 0.12,
             },
             aspect_tags=["visual", "feel"],
         )
@@ -149,6 +152,9 @@ class MarketSignalRepositoryTest(unittest.TestCase):
         self.assertEqual(signals.video_views, 1000)
         self.assertEqual(signals.discussion_count, 30)
         self.assertEqual(signals.marketing_volume, 180)
+        self.assertEqual(signals.sales_volume, 120000)
+        self.assertEqual(signals.avg_spend_to_obtain, 88.8)
+        self.assertEqual(signals.ownership_rate, 0.12)
         self.assertEqual(len(self.market_repo.list_evidence("105-02")), 1)
 
 

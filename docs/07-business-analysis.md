@@ -199,3 +199,26 @@ python scripts/generate_sales_report.py --search 龙胆 --json
 - `conversion_blockers`：可能压低转化的阻力。
 - `recommended_actions`：运营可执行动作。
 - `evidence_gaps`：还需要补采的舆论、销量或拥有率信号。
+
+## 评分/销量偏差入口
+
+销量服务目标不是让评分追随销量，而是找出偏差并解释偏差：
+
+```bash
+python scripts/import_sales_evidence.py examples/public_sales_evidence_demo.json
+python scripts/compare_score_sales.py --all-with-sales --limit 20
+```
+
+输出字段：
+
+- `score`：排除直接销量字段后的评分。
+- `sales_score`：销量证据换算出的代理分。
+- `gap`：`score - sales_score`。
+- `gap_direction`：偏差方向。
+- `sales_basis`：销量证据来源类型，如估算销量、销量榜、上限声明。
+
+业务解释：
+
+- `score_above_sales`：内容看起来强，但销量没有跟上，优先查价格、入口、首周权益、英雄热度和素材转化。
+- `sales_above_score`：销量强于评分，说明当前评分体系低估了 IP、返场、联动、人群偏好或渠道触达。
+- `aligned`：评分和销量代理基本一致，适合作为后续案例库。

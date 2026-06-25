@@ -309,7 +309,31 @@ python3 vlm/ollama_vlm_test.py \
 | `--prompt` | 使用的评估模板，当前支持 `l1`、`l2` |
 | `--timeout` | 单个模型请求超时时间 |
 
-## 10. 常见问题
+## 10. 销量证据与评分/销量偏差
+
+销量证据不直接写进情绪评分。先把公开销量、销量榜、估算销量作为证据入库，再用 sales-blind 评分和销量代理分做偏差比较：
+
+```bash
+python3 scripts/import_sales_evidence.py examples/public_sales_evidence_demo.json
+python3 scripts/compare_score_sales.py --source-key 167-12
+python3 scripts/compare_score_sales.py --all-with-sales --limit 20
+python3 scripts/compare_score_sales.py --all-with-sales --json
+```
+
+偏差输出里的 `score` 会排除直接销量字段，避免“用销量参与评分，再拿评分验证销量”的循环。`sales_basis` 会标明销量证据类型：
+
+- `sales_volume`：明确销量。
+- `estimated_sales_volume`：公开来源估算销量。
+- `sales_rank`：公开热销榜/销量榜名次代理。
+- `sales_volume_upper_bound` / `sales_volume_lower_bound`：上限或下限声明，只能作弱校验。
+
+本地 API 也提供同一能力：
+
+```bash
+POST /api/sales-gap
+```
+
+## 11. 常见问题
 
 ### ModuleNotFoundError
 
@@ -338,7 +362,7 @@ ollama list
 
 如果该命令也失败，先启动或安装 Ollama。
 
-## 11. 推荐的新手运行顺序
+## 12. 推荐的新手运行顺序
 
 ```bash
 cd /home/mzhyui/git/emogame

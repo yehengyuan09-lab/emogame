@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import time
 from contextlib import closing
@@ -269,6 +270,9 @@ class MarketSignalRepository:
         video_views = 0
         discussion_count = 0
         marketing_volume = 0
+        sales_values: list[int] = []
+        spend_values: list[float] = []
+        ownership_values: list[float] = []
         evidence_count = 0
         for item in evidence:
             metrics = item.get("metrics") or {}
@@ -290,11 +294,31 @@ class MarketSignalRepository:
                     "attitudes_count",
                 )
             )
+            sales_volume = _sales_volume_metric(metrics)
+            sales_relation = str(
+                metrics.get("sales_volume_relation") or metrics.get("volume_relation") or "exact"
+            ).lower()
+            if sales_volume is not None and sales_relation not in {"upper_bound", "lower_bound"}:
+                sales_values.append(int(sales_volume))
+
+            spend = _first_numeric_metric(
+                metrics,
+                ("avg_spend_to_obtain", "average_spend", "avg_spend", "spend_to_obtain"),
+            )
+            if spend is not None:
+                spend_values.append(float(spend))
+
+            ownership = _first_numeric_metric(metrics, ("ownership_rate", "own_rate"))
+            if ownership is not None:
+                ownership_values.append(float(ownership))
 
         signals = MarketValidationSignals(
             discussion_count=discussion_count or None,
             video_views=video_views or None,
             marketing_volume=marketing_volume or None,
+            sales_volume=max(sales_values) if sales_values else None,
+            avg_spend_to_obtain=round(sum(spend_values) / len(spend_values), 2) if spend_values else None,
+            ownership_rate=max(ownership_values) if ownership_values else None,
         )
         self.upsert_signals(
             source_key,
@@ -305,6 +329,31 @@ class MarketSignalRepository:
         )
         self._set_evidence_count(source_key, evidence_count)
         return signals
+
+    def list_source_keys_with_sales_evidence(self) -> list[str]:
+        """Return skins that have any sales-like aggregate or evidence metric."""
+        self.ensure_schema()
+        with closing(self._connect()) as conn:
+            rows = self._rows(
+                conn.execute(
+                    """
+                    SELECT source_key
+                    FROM market_signal_records
+                    WHERE sales_volume IS NOT NULL
+                       OR avg_spend_to_obtain IS NOT NULL
+                       OR ownership_rate IS NOT NULL
+                    UNION
+                    SELECT source_key
+                    FROM opinion_evidence_items
+                    WHERE metrics_json LIKE '%sales%'
+                       OR metrics_json LIKE '%units_sold%'
+                       OR metrics_json LIKE '%rank%'
+                       OR metrics_json LIKE '%ownership_rate%'
+                    ORDER BY source_key
+                    """
+                )
+            )
+        return [str(row["source_key"]) for row in rows]
 
     def _set_evidence_count(self, source_key: str, evidence_count: int) -> None:
         now = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -318,3 +367,50 @@ class MarketSignalRepository:
                 (evidence_count, now, source_key),
             )
             conn.commit()
+
+
+def _sales_volume_metric(metrics: dict[str, Any]) -> int | None:
+    explicit = _first_numeric_metric(
+        metrics,
+        (
+            "sales_volume",
+            "estimated_sales_volume",
+            "sales_volume_estimate",
+            "units_sold",
+            "sales",
+            "sales_volume_upper_bound",
+            "sales_volume_lower_bound",
+        ),
+    )
+    return int(explicit) if explicit is not None else None
+
+
+def _first_numeric_metric(metrics: dict[str, Any], names: tuple[str, ...]) -> float | None:
+    for name in names:
+        if name in metrics:
+            parsed = _coerce_number(metrics.get(name))
+            if parsed is not None:
+                return parsed
+    return None
+
+
+def _coerce_number(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        return float(int(value))
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, str):
+        text = value.strip().lower().replace(",", "")
+        multiplier = 1
+        if "万" in text or text.endswith("w"):
+            multiplier = 10_000
+        match = re.search(r"-?\d+(?:\.\d+)?", text)
+        if not match:
+            return None
+        try:
+            return float(match.group(0)) * multiplier
+        except ValueError:
+            return None
+    return None

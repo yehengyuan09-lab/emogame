@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ from data.skin_repository import DEFAULT_DB_PATH, SkinRepository
 from feature_engineering.features import MarketValidationSignals
 from feature_engineering.pipeline import FeatureBuilder
 from models.rule_engine import RuleEngine
+from models.sales_deviation import compare_score_to_sales, sales_blind_signals
 
 
 router = APIRouter()
@@ -37,6 +39,11 @@ class EvaluationResponse(BaseModel):
 class SalesReportResponse(BaseModel):
     evaluation: dict[str, Any]
     sales_report: dict[str, Any]
+
+
+class SalesGapResponse(BaseModel):
+    evaluation: dict[str, Any]
+    sales_gap: dict[str, Any]
 
 
 def repo_or_404(db_path: Path) -> SkinRepository:
@@ -116,4 +123,26 @@ def sales_report(
     return {
         "evaluation": evaluation.to_dict(),
         "sales_report": report.to_dict(),
+    }
+
+
+@router.post("/sales-gap", response_model=SalesGapResponse)
+def sales_gap(
+    request: EvaluationRequest,
+    db: str = Query(default=str(DEFAULT_DB_PATH)),
+) -> dict[str, Any]:
+    db_path = Path(db)
+    sales_features, _ = build_features_and_evaluation(db_path, request)
+    update = {"signals": asdict(sales_blind_signals(sales_features.market_signals))}
+    score_request = (
+        request.model_copy(update=update)
+        if hasattr(request, "model_copy")
+        else request.copy(update=update)
+    )
+    score_features, evaluation = build_features_and_evaluation(db_path, score_request)
+    evidence = MarketSignalRepository(db_path).list_evidence(sales_features.source_key)
+    gap = compare_score_to_sales(sales_features, evaluation, evidence)
+    return {
+        "evaluation": evaluation.to_dict(),
+        "sales_gap": gap,
     }

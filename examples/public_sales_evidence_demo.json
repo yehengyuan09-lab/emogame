@@ -1,0 +1,240 @@
+{
+  "detail-0032-50704": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sina-2026h1-top10-rank-1",
+        "url": "https://www.sina.cn/news/detail/5303730741709196.html",
+        "title": "2026上半年王者荣耀皮肤销量TOP10大盘点",
+        "author": "手游娘 / 新浪新闻",
+        "published_at": "2026-05-29T02:03:00+08:00",
+        "text": "李信-问心剑（无双）：春节爆款，三形态顶级质感，销量断层第一。",
+        "metrics": {
+          "sales_rank": 1,
+          "rank_size": 10,
+          "rank_floor_score": 60,
+          "rank_scope": "2026H1 public media top10",
+          "source_confidence": 0.45
+        }
+      }
+    ]
+  },
+  "199-08": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sina-2026h1-top10-rank-2",
+        "url": "https://www.sina.cn/news/detail/5303730741709196.html",
+        "title": "2026上半年王者荣耀皮肤销量TOP10大盘点",
+        "author": "手游娘 / 新浪新闻",
+        "published_at": "2026-05-29T02:03:00+08:00",
+        "text": "公孙离-离恨烟（无双）：返场热度拉满，特效手感双优。",
+        "metrics": {
+          "sales_rank": 2,
+          "rank_size": 10,
+          "rank_floor_score": 60,
+          "rank_scope": "2026H1 public media top10",
+          "source_confidence": 0.45
+        }
+      }
+    ]
+  },
+  "505-09": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sina-2026h1-top10-rank-3",
+        "url": "https://www.sina.cn/news/detail/5303730741709196.html",
+        "title": "2026上半年王者荣耀皮肤销量TOP10大盘点",
+        "author": "手游娘 / 新浪新闻",
+        "published_at": "2026-05-29T02:03:00+08:00",
+        "text": "瑶-大耳狗之梦（珍品传说）：三丽鸥联动，瑶妹购买力顶流。",
+        "metrics": {
+          "sales_rank": 3,
+          "rank_size": 10,
+          "rank_floor_score": 60,
+          "rank_scope": "2026H1 public media top10",
+          "source_confidence": 0.45
+        }
+      }
+    ]
+  },
+  "detail-0009-19309": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sina-2026h1-top10-rank-4",
+        "url": "https://www.sina.cn/news/detail/5303730741709196.html",
+        "title": "2026上半年王者荣耀皮肤销量TOP10大盘点",
+        "author": "手游娘 / 新浪新闻",
+        "published_at": "2026-05-29T02:03:00+08:00",
+        "text": "铠-东海龙王·敖光（珍品传说）：哪吒2联动，人气+特效双在线。",
+        "metrics": {
+          "sales_rank": 4,
+          "rank_size": 10,
+          "rank_floor_score": 60,
+          "rank_scope": "2026H1 public media top10",
+          "source_confidence": 0.45
+        }
+      }
+    ]
+  },
+  "142-09": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sina-2026h1-top10-rank-5",
+        "url": "https://www.sina.cn/news/detail/5303730741709196.html",
+        "title": "2026上半年王者荣耀皮肤销量TOP10大盘点",
+        "author": "手游娘 / 新浪新闻",
+        "published_at": "2026-05-29T02:03:00+08:00",
+        "text": "安琪拉-酷洛米之心（珍品传说）：三丽鸥联动，女玩家必入款。",
+        "metrics": {
+          "sales_rank": 5,
+          "rank_size": 10,
+          "rank_floor_score": 60,
+          "rank_scope": "2026H1 public media top10",
+          "source_confidence": 0.45
+        }
+      }
+    ]
+  },
+  "141-07": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sina-2026h1-top10-rank-6",
+        "url": "https://www.sina.cn/news/detail/5303730741709196.html",
+        "title": "2026上半年王者荣耀皮肤销量TOP10大盘点",
+        "author": "手游娘 / 新浪新闻",
+        "published_at": "2026-05-29T02:03:00+08:00",
+        "text": "貂蝉-遇见胡旋（传说限定）：返场常青树，品质零差评。",
+        "metrics": {
+          "sales_rank": 6,
+          "rank_size": 10,
+          "rank_floor_score": 60,
+          "rank_scope": "2026H1 public media top10",
+          "source_confidence": 0.45
+        }
+      }
+    ]
+  },
+  "detail-0138-52205": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sina-2026h1-top10-rank-7",
+        "url": "https://www.sina.cn/news/detail/5303730741709196.html",
+        "title": "2026上半年王者荣耀皮肤销量TOP10大盘点",
+        "author": "手游娘 / 新浪新闻",
+        "published_at": "2026-05-29T02:03:00+08:00",
+        "text": "曜-螭龙剑（无双）：特效炸裂，龙系视觉拉满。",
+        "metrics": {
+          "sales_rank": 7,
+          "rank_size": 10,
+          "rank_floor_score": 60,
+          "rank_scope": "2026H1 public media top10",
+          "source_confidence": 0.45
+        }
+      }
+    ]
+  },
+  "detail-0137-51506": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sina-2026h1-top10-rank-8",
+        "url": "https://www.sina.cn/news/detail/5303730741709196.html",
+        "title": "2026上半年王者荣耀皮肤销量TOP10大盘点",
+        "author": "手游娘 / 新浪新闻",
+        "published_at": "2026-05-29T02:03:00+08:00",
+        "text": "嫦娥-落星盏（珍品传说）：颜值出圈，仙气特效吸粉。",
+        "metrics": {
+          "sales_rank": 8,
+          "rank_size": 10,
+          "rank_floor_score": 60,
+          "rank_scope": "2026H1 public media top10",
+          "source_confidence": 0.45
+        }
+      }
+    ]
+  },
+  "195-03": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sina-2026h1-top10-rank-9",
+        "url": "https://www.sina.cn/news/detail/5303730741709196.html",
+        "title": "2026上半年王者荣耀皮肤销量TOP10大盘点",
+        "author": "手游娘 / 新浪新闻",
+        "published_at": "2026-05-29T02:03:00+08:00",
+        "text": "百里玄策-白虎志（传说限定）：老牌神皮，返场销量依旧能打。",
+        "metrics": {
+          "sales_rank": 9,
+          "rank_size": 10,
+          "rank_floor_score": 60,
+          "rank_scope": "2026H1 public media top10",
+          "source_confidence": 0.45
+        }
+      }
+    ]
+  },
+  "109-07": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sina-2026h1-top10-rank-10",
+        "url": "https://www.sina.cn/news/detail/5303730741709196.html",
+        "title": "2026上半年王者荣耀皮肤销量TOP10大盘点",
+        "author": "手游娘 / 新浪新闻",
+        "published_at": "2026-05-29T02:03:00+08:00",
+        "text": "妲己-时之彼端（史诗）：唯一直售上榜，性价比高。",
+        "metrics": {
+          "sales_rank": 10,
+          "rank_size": 10,
+          "rank_floor_score": 60,
+          "rank_scope": "2026H1 public media top10",
+          "source_confidence": 0.45
+        }
+      }
+    ]
+  },
+  "167-12": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "taptap-wuxiang-20260104-100w",
+        "url": "https://www.taptap.cn/moment/756842649679301754",
+        "title": "孙悟空无双销量破100w～对得起这个价格！",
+        "author": "TapTap社区用户",
+        "published_at": "2026-01-04",
+        "text": "社区帖称孙悟空无相上线后五分钟内销量突破100w+。",
+        "metrics": {
+          "estimated_sales_volume": 1000000,
+          "sales_volume_relation": "estimated",
+          "sales_window": "first_five_minutes_claim",
+          "source_confidence": 0.35
+        }
+      }
+    ]
+  },
+  "107-08": {
+    "evidence": [
+      {
+        "platform": "sales_public",
+        "external_id": "sohu-longdan-20200505-under-100w",
+        "url": "https://www.sohu.com/a/393129818_120397845",
+        "title": "王者荣耀：龙胆上线首日，销量无法突破百万，只因需多花588点券",
+        "author": "游戏爆料菌 / 搜狐",
+        "published_at": "2020-05-05T19:59:00+08:00",
+        "text": "文章判断赵云龙胆首日销量无法突破百万，并解释为英雄获取成本和英雄热度影响。",
+        "metrics": {
+          "sales_volume_upper_bound": 1000000,
+          "sales_volume_relation": "upper_bound",
+          "sales_window": "first_day_claim",
+          "source_confidence": 0.35
+        }
+      }
+    ]
+  }
+}
