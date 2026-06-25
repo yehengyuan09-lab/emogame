@@ -171,3 +171,18 @@ if submitted:
 ## 下一步
 
 - → [09 — 部署与运维](09-deployment.md)
+
+## 当前落地入口
+
+本地 Streamlit 工作台已经可运行：
+
+```bash
+python -m streamlit run app.py --server.port 8501
+```
+
+当前版本聚焦运营验收，不依赖 VLM 或 LLM 在线推理：
+
+- 左侧搜索并选择本地 SQLite 中的皮肤。
+- 支持读取数据库证据、忽略证据、手动模拟证据信号。
+- 主区展示销售决策、销售准备度、证据分、官方先验和置信度。
+- Tab 展示销售动作、证据结构、皮肤信息和 JSON 导出。

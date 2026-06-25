@@ -243,6 +243,14 @@ python3 -m uvicorn api.main:app --host 127.0.0.1 --port 8000
 - `POST /api/evaluate`
 - `POST /api/sales-report`
 
+启动 Streamlit 工作台：
+
+```bash
+python3 -m streamlit run app.py --server.port 8501
+```
+
+工作台支持皮肤搜索、数据库证据/忽略证据/手动模拟三种模式，并展示销售决策、动作建议、证据结构和 JSON 导出。
+
 也可以查看本地图片数量：
 
 ```bash
