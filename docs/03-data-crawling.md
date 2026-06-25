@@ -75,6 +75,31 @@
 
 ## 核心爬虫接口设计
 
+当前已实现第一阶段官方数据采集脚本：
+
+```bash
+python crawlers/wzry_skin_crawler.py --limit 50
+```
+
+采集策略：
+
+1. 使用 `https://pvp.qq.com/web201605/js/herolist.json` 作为英雄和皮肤名称全集基准。
+2. 使用 `https://pvp.qq.com/zlkdatasys/heroskinlist.json` 补充皮肤 ID、品质、上线时间、获取方式、介绍、图片、详情页和视频。
+3. 按 `(hero_name, skin_name)` 合并两个官方源。
+4. 没有匹配到详情源的目录皮肤仍然保留，标记为 `has_detail_record = 0`。
+5. 图片资产写入 `skin_assets`，默认只下载 `skin_primary`，也可以用 `--skip-images` 只保存 URL。
+
+SQLite 表：
+
+| 表 | 用途 |
+|------|------|
+| `crawl_runs` | 记录每次采集的来源、数量和失败统计 |
+| `heroes` | 英雄基础信息和皮肤数量 |
+| `skins` | 皮肤目录与官方增强字段 |
+| `skin_assets` | 图片 URL、本地路径、下载状态和 SHA-256 |
+
+第一阶段暂不抓取微博、贴吧、NGA、Bilibili 和二级市场数据。这些来源在官方数据闭环稳定后再接入，用于补充热度、口碑和价格事件。
+
 ```python
 # crawlers/manager.py
 class CrawlerManager:

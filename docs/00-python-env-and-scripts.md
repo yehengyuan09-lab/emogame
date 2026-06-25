@@ -80,7 +80,12 @@ vlm/                   # 本地视觉模型测试脚本
 crawlers/wzry_skin_crawler.py
 ```
 
-它会从王者荣耀官网 JSON 数据源读取皮肤信息，保存元数据到 SQLite，并下载皮肤图片到本地。
+它会从两个王者荣耀官网 JSON 数据源读取数据：
+
+- `herolist.json`：作为英雄与皮肤名称全集基准。
+- `heroskinlist.json`：补充皮肤 ID、品质、上线日期、获取方式、详情页、视频和图片 URL。
+
+脚本会把合并后的元数据保存到 SQLite，并按需下载皮肤图片到本地。
 
 ### 快速试跑
 
@@ -100,9 +105,15 @@ data/wzry_skins/images/
 脚本结束时会打印类似信息：
 
 ```text
-skins=10 downloaded_or_existing=10 image_failed=0
+heroes=130 skins=10 with_detail=10 assets=30 downloaded_or_existing=10 image_failed=0
 db=data/wzry_skins/skins.sqlite3
 images=data/wzry_skins/images
+```
+
+如果只想检查元数据合并，不下载图片：
+
+```bash
+python3 crawlers/wzry_skin_crawler.py --limit 50 --skip-images
 ```
 
 ### 常用参数
@@ -114,6 +125,8 @@ images=data/wzry_skins/images
 | `--db` | SQLite 数据库保存路径 | `--db data/wzry_skins/skins.sqlite3` |
 | `--sleep` | 每次图片请求之间的等待秒数 | `--sleep 0.1` |
 | `--overwrite` | 已存在图片也重新下载 | `--overwrite` |
+| `--skip-images` | 只采集元数据和图片 URL，不下载图片 | `--skip-images` |
+| `--download-assets` | 下载的资产类型，默认 `skin_primary`，可用 `all` | `--download-assets all` |
 
 全量采集示例：
 
@@ -135,6 +148,15 @@ python3 crawlers/wzry_skin_crawler.py --overwrite
 sqlite3 data/wzry_skins/skins.sqlite3 "select count(*) from skins;"
 sqlite3 data/wzry_skins/skins.sqlite3 "select hero_name, skin_name, quality, price_text from skins limit 10;"
 ```
+
+当前数据库会包含：
+
+| 表 | 内容 |
+|------|------|
+| `heroes` | 英雄 ID、名称、称号、定位、皮肤数量 |
+| `skins` | 合并后的皮肤目录、官方增强字段、是否匹配到详情源 |
+| `skin_assets` | 每个皮肤的图片 URL、本地路径、下载状态、文件 hash |
+| `crawl_runs` | 每次采集的来源 URL、数量统计和失败数量 |
 
 也可以查看本地图片数量：
 
