@@ -222,3 +222,19 @@ python scripts/compare_score_sales.py --all-with-sales --limit 20
 - `score_above_sales`：内容看起来强，但销量没有跟上，优先查价格、入口、首周权益、英雄热度和素材转化。
 - `sales_above_score`：销量强于评分，说明当前评分体系低估了 IP、返场、联动、人群偏好或渠道触达。
 - `aligned`：评分和销量代理基本一致，适合作为后续案例库。
+
+### 校准后看偏差
+
+```bash
+python scripts/calibrate_sales_score.py --write-model outputs/sales_calibration_model.json
+python scripts/compare_score_sales.py --all-with-sales --calibration-model outputs/sales_calibration_model.json
+```
+
+校准后表格会同时显示：
+
+- `base`：原始 sales-blind 评分。
+- `cal`：ML 校准后的 `calibrated_score`。
+- `sales`：销量证据代理分。
+- `gap`：校准后的差值。
+
+这一步适合用来找“当前样例库里应该怎样调权重/非线性关系”，但不应替代后续真实 A/B 转化或新增样本验证。

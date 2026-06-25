@@ -326,6 +326,17 @@ data_size=500 → alpha=0.33 (几乎纯 ML)
 - `sales_above_score`：销量高于评分，说明 IP、人气、返场、联动或渠道需求被当前评分低估。
 - `insufficient_sales_data`：没有可用销量证据。
 
+### ML 校准层
+
+`models.sales_calibration` 提供一个 sales-blind 的 RBF kernel ridge 校准器：
+
+- 输入：原始评分、官方先验、品质层级、上架时间、获取方式、英雄皮肤数量、非销量市场信号。
+- 禁用输入：销量、拥有率、平均获取花费等直接销量目标字段。
+- 输出：独立的 `calibrated_score`，不覆盖 `evaluation_score`。
+- 停止条件：`abs(calibrated_score - sales_score) > 10` 的样本数通过单侧二项检验，拒绝 `p >= 0.10`。
+
+当前样例集达到训练集校准目标，但 `leave_one_out` 仍未通过，说明它是“小样本校准器”，还需要持续补销量榜、真实销量、舆情维度评分后再判断泛化。
+
 ## 下一步
 
 - → [06 — 智能体执行架构](06-agent-architecture.md)

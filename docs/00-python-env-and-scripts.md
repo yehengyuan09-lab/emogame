@@ -333,6 +333,20 @@ python3 scripts/compare_score_sales.py --all-with-sales --json
 POST /api/sales-gap
 ```
 
+如需运行 ML 校准 loop，让 `|score - sales_score| > 10` 通过单侧二项检验降到 `<10%` 概率事件：
+
+```bash
+python3 scripts/calibrate_sales_score.py \
+  --write-model outputs/sales_calibration_model.json \
+  --write-report outputs/sales_calibration_report.json
+
+python3 scripts/compare_score_sales.py \
+  --all-with-sales \
+  --calibration-model outputs/sales_calibration_model.json
+```
+
+当前校准层不会覆盖原始 `evaluation_score`，而是输出 `calibrated_score`。报告同时包含 `baseline`、`calibrated` 和 `leave_one_out`，防止把训练集拟合误读成泛化能力。
+
 ## 11. 常见问题
 
 ### ModuleNotFoundError
