@@ -121,10 +121,11 @@ def collect_calibration_samples(
     db_path: str | Path,
     *,
     limit: int | None = None,
+    official_only: bool = True,
 ) -> list[CalibrationSample]:
     repo = SkinRepository(db_path)
     market_repo = MarketSignalRepository(db_path)
-    source_keys = market_repo.list_source_keys_with_sales_evidence()
+    source_keys = market_repo.list_source_keys_with_sales_evidence(official_only=official_only)
     if limit is not None:
         source_keys = source_keys[: max(0, limit)]
 
@@ -133,10 +134,10 @@ def collect_calibration_samples(
     engine = RuleEngine()
     for source_key in source_keys:
         signals = market_repo.get_signals(source_key)
-        sales_features = builder.build(source_key, signals)
+        sales_features = builder.build(source_key, sales_blind_signals(signals) if official_only else signals)
         score_features = builder.build(source_key, sales_blind_signals(signals))
         evaluation = engine.evaluate(score_features)
-        evidence = market_repo.list_evidence(source_key)
+        evidence = market_repo.list_evidence(source_key, official_only=official_only)
         gap = compare_score_to_sales(sales_features, evaluation, evidence)
         if gap["sales_score"] is None:
             continue

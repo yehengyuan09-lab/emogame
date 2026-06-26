@@ -33,6 +33,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--all-with-sales", action="store_true", help="Compare all skins with sales evidence.")
     parser.add_argument("--limit", type=int, default=50, help="Limit for --all-with-sales.")
     parser.add_argument("--calibration-model", type=Path, help="Optional sales calibration model JSON.")
+    parser.add_argument(
+        "--include-non-official",
+        action="store_true",
+        help="Include non-official public evidence. Default is official-only.",
+    )
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     return parser.parse_args()
 
@@ -44,6 +49,7 @@ def build_comparison(
     signals_json: Path | None = None,
     ignore_db_signals: bool = False,
     calibration_model: RbfSalesCalibrator | None = None,
+    official_only: bool = True,
 ) -> dict[str, Any]:
     repo = SkinRepository(db_path)
     market_repo = MarketSignalRepository(db_path)
@@ -54,10 +60,10 @@ def build_comparison(
     else:
         signals = market_repo.get_signals(source_key)
 
-    sales_features = FeatureBuilder(repo).build(source_key, signals)
+    sales_features = FeatureBuilder(repo).build(source_key, sales_blind_signals(signals) if official_only else signals)
     score_features = FeatureBuilder(repo).build(source_key, sales_blind_signals(signals))
     evaluation = RuleEngine().evaluate(score_features)
-    evidence = market_repo.list_evidence(source_key)
+    evidence = market_repo.list_evidence(source_key, official_only=official_only)
     gap = compare_score_to_sales(sales_features, evaluation, evidence)
     if calibration_model is not None and gap["sales_score"] is not None:
         calibrated_score = calibration_model.predict(calibration_features(score_features, evaluation))
@@ -89,7 +95,8 @@ def build_all_comparisons(
     calibration_model: RbfSalesCalibrator | None = None,
 ) -> list[dict[str, Any]]:
     market_repo = MarketSignalRepository(args.db)
-    source_keys = market_repo.list_source_keys_with_sales_evidence()[: max(0, args.limit)]
+    official_only = not args.include_non_official
+    source_keys = market_repo.list_source_keys_with_sales_evidence(official_only=official_only)[: max(0, args.limit)]
     return [
         build_comparison(
             args.db,
@@ -97,6 +104,7 @@ def build_all_comparisons(
             signals_json=args.signals_json,
             ignore_db_signals=args.ignore_db_signals,
             calibration_model=calibration_model,
+            official_only=official_only,
         )
         for source_key in source_keys
     ]
@@ -185,6 +193,7 @@ def main() -> int:
                 signals_json=args.signals_json,
                 ignore_db_signals=args.ignore_db_signals,
                 calibration_model=calibration_model,
+                official_only=not args.include_non_official,
             )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)

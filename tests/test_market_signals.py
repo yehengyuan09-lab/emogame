@@ -157,6 +157,26 @@ class MarketSignalRepositoryTest(unittest.TestCase):
         self.assertEqual(signals.ownership_rate, 0.12)
         self.assertEqual(len(self.market_repo.list_evidence("105-02")), 1)
 
+    def test_official_only_evidence_filter(self):
+        self.market_repo.add_evidence(
+            "105-02",
+            platform="sales_public",
+            external_id="media-rank",
+            metrics={"sales_rank": 1, "rank_size": 10},
+        )
+        self.market_repo.add_evidence(
+            "105-02",
+            platform="official_public_rank",
+            external_id="official-rank",
+            metrics={"sales_rank": 2, "rank_size": 10},
+        )
+
+        evidence = self.market_repo.list_evidence("105-02", official_only=True)
+
+        self.assertEqual(len(evidence), 1)
+        self.assertEqual(evidence[0]["platform"], "official_public_rank")
+        self.assertEqual(self.market_repo.list_source_keys_with_sales_evidence(official_only=True), ["105-02"])
+
 
 if __name__ == "__main__":
     unittest.main()

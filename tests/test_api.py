@@ -132,13 +132,33 @@ class ApiTest(unittest.TestCase):
 
         response = self.client.post(
             "/api/sales-gap",
-            params={"db": str(self.db_path)},
+            params={"db": str(self.db_path), "official_only": False},
             json={"source_key": "107-08"},
         )
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("sales_gap", response.json())
         self.assertEqual(response.json()["sales_gap"]["sales_basis"], "estimated_sales_volume")
+
+    def test_sales_gap_defaults_to_official_only(self):
+        market_repo = MarketSignalRepository(self.db_path)
+        market_repo.add_evidence(
+            "107-08",
+            platform="sales_public",
+            external_id="sales-demo",
+            metrics={"estimated_sales_volume": 1_000_000, "sales_volume_relation": "estimated"},
+        )
+        market_repo.aggregate_evidence_signals("107-08")
+
+        response = self.client.post(
+            "/api/sales-gap",
+            params={"db": str(self.db_path)},
+            json={"source_key": "107-08"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["sales_gap"]["sales_basis"], None)
+        self.assertEqual(response.json()["sales_gap"]["gap_direction"], "insufficient_sales_data")
 
 
 if __name__ == "__main__":

@@ -31,6 +31,18 @@ SIGNAL_FIELDS = (
     "ownership_rate",
 )
 
+OFFICIAL_EVIDENCE_PLATFORMS = (
+    "official_exact_sales",
+    "official_public_rank",
+)
+
+SALES_EVIDENCE_PATTERNS = (
+    "%sales%",
+    "%units_sold%",
+    "%rank%",
+    "%ownership_rate%",
+)
+
 
 class MarketSignalRepository:
     """Store and retrieve market/opinion signals for skins."""
@@ -242,20 +254,26 @@ class MarketSignalRepository:
             ).fetchone()
         return MarketValidationSignals.from_dict(dict(row) if row else {})
 
-    def list_evidence(self, source_key: str) -> list[dict[str, Any]]:
+    def list_evidence(self, source_key: str, *, official_only: bool = False) -> list[dict[str, Any]]:
         self.ensure_schema()
+        where = ["source_key = ?"]
+        params: list[Any] = [source_key]
+        if official_only:
+            placeholders = ", ".join("?" for _ in OFFICIAL_EVIDENCE_PLATFORMS)
+            where.append(f"platform IN ({placeholders})")
+            params.extend(OFFICIAL_EVIDENCE_PLATFORMS)
         with closing(self._connect()) as conn:
             rows = self._rows(
                 conn.execute(
-                    """
+                    f"""
                     SELECT evidence_id, source_key, platform, external_id, url, title,
                            author, published_at, text, metrics_json, aspect_tags,
                            raw_json, collected_at
                     FROM opinion_evidence_items
-                    WHERE source_key = ?
+                    WHERE {" AND ".join(where)}
                     ORDER BY collected_at DESC, evidence_id DESC
                     """,
-                    (source_key,),
+                    params,
                 )
             )
         for row in rows:
@@ -330,13 +348,30 @@ class MarketSignalRepository:
         self._set_evidence_count(source_key, evidence_count)
         return signals
 
-    def list_source_keys_with_sales_evidence(self) -> list[str]:
+    def list_source_keys_with_sales_evidence(self, *, official_only: bool = False) -> list[str]:
         """Return skins that have any sales-like aggregate or evidence metric."""
         self.ensure_schema()
+        evidence_sales_clause = " OR ".join("metrics_json LIKE ?" for _ in SALES_EVIDENCE_PATTERNS)
         with closing(self._connect()) as conn:
+            if official_only:
+                placeholders = ", ".join("?" for _ in OFFICIAL_EVIDENCE_PLATFORMS)
+                rows = self._rows(
+                    conn.execute(
+                        f"""
+                        SELECT DISTINCT source_key
+                        FROM opinion_evidence_items
+                        WHERE platform IN ({placeholders})
+                          AND ({evidence_sales_clause})
+                        ORDER BY source_key
+                        """,
+                        [*OFFICIAL_EVIDENCE_PLATFORMS, *SALES_EVIDENCE_PATTERNS],
+                    )
+                )
+                return [str(row["source_key"]) for row in rows]
+
             rows = self._rows(
                 conn.execute(
-                    """
+                    f"""
                     SELECT source_key
                     FROM market_signal_records
                     WHERE sales_volume IS NOT NULL
@@ -345,12 +380,10 @@ class MarketSignalRepository:
                     UNION
                     SELECT source_key
                     FROM opinion_evidence_items
-                    WHERE metrics_json LIKE '%sales%'
-                       OR metrics_json LIKE '%units_sold%'
-                       OR metrics_json LIKE '%rank%'
-                       OR metrics_json LIKE '%ownership_rate%'
+                    WHERE {evidence_sales_clause}
                     ORDER BY source_key
-                    """
+                    """,
+                    SALES_EVIDENCE_PATTERNS,
                 )
             )
         return [str(row["source_key"]) for row in rows]

@@ -27,6 +27,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-iterations", type=int, default=500)
     parser.add_argument("--write-model", type=Path, help="Write calibrated model JSON.")
     parser.add_argument("--write-report", type=Path, help="Write full calibration report JSON.")
+    parser.add_argument(
+        "--include-non-official",
+        action="store_true",
+        help="Include non-official public evidence. Default is official-only.",
+    )
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     return parser.parse_args()
 
@@ -42,6 +47,7 @@ def serializable_report(result: dict[str, Any]) -> dict[str, Any]:
 def print_text(report: dict[str, Any]) -> None:
     print("sales score calibration")
     print("=" * 44)
+    print(f"evidence scope: {report.get('evidence_scope', 'official_only')}")
     print(f"samples:       {report['calibrated']['n']}")
     print(f"iterations:    {report['iterations']}")
     print(f"minimum n:     {report['minimum_samples_for_zero_failures']} for zero failures")
@@ -87,7 +93,11 @@ def main() -> int:
         print(f"database not found: {args.db}", file=sys.stderr)
         return 1
 
-    samples = collect_calibration_samples(args.db, limit=args.limit)
+    samples = collect_calibration_samples(
+        args.db,
+        limit=args.limit,
+        official_only=not args.include_non_official,
+    )
     try:
         result = fit_until_gap_probability(
             samples,
@@ -101,6 +111,7 @@ def main() -> int:
         return 1
 
     report = serializable_report(result)
+    report["evidence_scope"] = "all_public_evidence" if args.include_non_official else "official_only"
     if args.write_model:
         args.write_model.parent.mkdir(parents=True, exist_ok=True)
         args.write_model.write_text(

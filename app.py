@@ -11,7 +11,7 @@ from typing import Any
 import streamlit as st
 
 from business.sales_advisor import SalesAdvisor
-from data.market_signal_repository import MarketSignalRepository
+from data.market_signal_repository import OFFICIAL_EVIDENCE_PLATFORMS, MarketSignalRepository
 from data.skin_repository import DEFAULT_DB_PATH, SkinRepository
 from feature_engineering.features import MarketValidationSignals
 from feature_engineering.pipeline import FeatureBuilder
@@ -80,7 +80,7 @@ def search_skins(db_path: str, query: str, limit: int) -> list[dict[str, Any]]:
 
 
 @st.cache_data(show_spinner=False)
-def dataset_summary(db_path: str) -> dict[str, Any]:
+def dataset_summary(db_path: str, *, official_only: bool = True) -> dict[str, Any]:
     path = Path(db_path)
     if not path.exists():
         return empty_summary()
@@ -89,10 +89,10 @@ def dataset_summary(db_path: str) -> dict[str, Any]:
     market_repo = MarketSignalRepository(path)
     market_repo.ensure_schema()
     stats = skin_repo.stats()
-    evidence_rows = all_evidence_rows(path)
+    evidence_rows = all_evidence_rows(path, official_only=official_only)
     basis_counts = Counter(classify_sales_basis(row["metrics"]) for row in evidence_rows)
     platform_counts = Counter(row["platform"] for row in evidence_rows)
-    sales_source_keys = market_repo.list_source_keys_with_sales_evidence()
+    sales_source_keys = market_repo.list_source_keys_with_sales_evidence(official_only=official_only)
 
     return {
         "game": "王者荣耀",
@@ -108,6 +108,7 @@ def dataset_summary(db_path: str) -> dict[str, Any]:
         "basis_counts": dict(sorted(basis_counts.items())),
         "platform_counts": dict(sorted(platform_counts.items())),
         "source_keys": sales_source_keys,
+        "evidence_scope": "official_only" if official_only else "all_public_evidence",
     }
 
 
@@ -126,19 +127,33 @@ def empty_summary() -> dict[str, Any]:
         "basis_counts": {},
         "platform_counts": {},
         "source_keys": [],
+        "evidence_scope": "official_only",
     }
 
 
-def all_evidence_rows(db_path: Path, *, source_key: str | None = None, limit: int = 500) -> list[dict[str, Any]]:
+def all_evidence_rows(
+    db_path: Path,
+    *,
+    source_key: str | None = None,
+    official_only: bool = True,
+    limit: int = 500,
+) -> list[dict[str, Any]]:
     query = """
         SELECT source_key, platform, external_id, url, title, author,
                published_at, metrics_json, collected_at
         FROM opinion_evidence_items
     """
     params: list[Any] = []
+    where: list[str] = []
     if source_key:
-        query += " WHERE source_key = ?"
+        where.append("source_key = ?")
         params.append(source_key)
+    if official_only:
+        placeholders = ", ".join("?" for _ in OFFICIAL_EVIDENCE_PLATFORMS)
+        where.append(f"platform IN ({placeholders})")
+        params.extend(OFFICIAL_EVIDENCE_PLATFORMS)
+    if where:
+        query += " WHERE " + " AND ".join(where)
     query += " ORDER BY collected_at DESC, evidence_id DESC LIMIT ?"
     params.append(limit)
 
@@ -186,17 +201,19 @@ def build_payload(
     source_key: str,
     signals: MarketValidationSignals,
     calibration_model: RbfSalesCalibrator | None = None,
+    official_only: bool = True,
 ) -> dict[str, Any]:
     repo = SkinRepository(db_path)
     market_repo = MarketSignalRepository(db_path)
     features = FeatureBuilder(repo).build(source_key, signals)
     evaluation = RuleEngine().evaluate(features)
     report = SalesAdvisor().advise(features, evaluation)
-    evidence = market_repo.list_evidence(source_key)
+    evidence = market_repo.list_evidence(source_key, official_only=official_only)
 
     score_features = FeatureBuilder(repo).build(source_key, sales_blind_signals(signals))
     gap_evaluation = RuleEngine().evaluate(score_features)
-    sales_gap = compare_score_to_sales(features, gap_evaluation, evidence)
+    sales_comparison_features = score_features if official_only else features
+    sales_gap = compare_score_to_sales(sales_comparison_features, gap_evaluation, evidence)
     if calibration_model and sales_gap["sales_score"] is not None:
         sales_gap = apply_calibration(score_features, gap_evaluation, sales_gap, calibration_model)
 
@@ -207,6 +224,7 @@ def build_payload(
         "sales_report": report.to_dict(),
         "sales_gap": sales_gap,
         "evidence_items": evidence,
+        "evidence_scope": "official_only" if official_only else "all_public_evidence",
     }
 
 
@@ -271,24 +289,30 @@ def load_signals(db_path: Path, source_key: str, mode: str) -> MarketValidationS
     return MarketSignalRepository(db_path).get_signals(source_key)
 
 
-def render_sidebar() -> tuple[Path, str | None, MarketValidationSignals | None, RbfSalesCalibrator | None]:
+def render_sidebar() -> tuple[Path, str | None, MarketValidationSignals | None, RbfSalesCalibrator | None, bool]:
     st.sidebar.title("EmoGame")
     st.sidebar.caption("证据审计、评分、销量偏差和校准工作台")
 
     st.sidebar.selectbox("游戏", ["王者荣耀（已接入）"], index=0)
     st.sidebar.caption("其他游戏还没有接入，不会伪装成可计算。")
 
+    include_non_official = st.sidebar.toggle(
+        "显示非官方旁证",
+        value=False,
+        help="默认关闭。B2B 模式只使用官方公开排名或客户授权销量数据。",
+    )
+
     db_text = st.sidebar.text_input("SQLite 数据库", value=str(DEFAULT_DB_PATH))
     db_path = Path(db_text)
     if not db_path.exists():
         st.sidebar.error("数据库不存在。先运行采集脚本生成 skins.sqlite3。")
-        return db_path, None, None, None
+        return db_path, None, None, None, not include_non_official
 
     query = st.sidebar.text_input("搜索皮肤", value="龙胆")
     rows = search_skins(str(db_path), query, 60)
     if not rows:
         st.sidebar.warning("没有匹配的皮肤。")
-        return db_path, None, None, None
+        return db_path, None, None, None, not include_non_official
 
     labels = [f"{row['source_key']} | {row['hero_name']} / {row['skin_name']}" for row in rows]
     selected_label = st.sidebar.selectbox("选择皮肤", labels)
@@ -320,7 +344,7 @@ def render_sidebar() -> tuple[Path, str | None, MarketValidationSignals | None, 
         st.sidebar.warning("未找到 outputs/sales_calibration_model.json。")
 
     signals = load_signals(db_path, source_key, mode)
-    return db_path, source_key, signals, calibration_model
+    return db_path, source_key, signals, calibration_model, not include_non_official
 
 
 def render_header(payload: dict[str, Any], summary: dict[str, Any]) -> None:
@@ -334,7 +358,7 @@ def render_header(payload: dict[str, Any], summary: dict[str, Any]) -> None:
 
     cols = st.columns(6)
     cols[0].metric("皮肤库", f"{summary['skins']}")
-    cols[1].metric("销量证据皮肤", f"{summary['sales_evidence_skins']}")
+    cols[1].metric("官方证据皮肤", f"{summary['sales_evidence_skins']}")
     cols[2].metric("原始评分", score_text(evaluation))
     cols[3].metric("当前评分", gap["score"] if gap["score"] is not None else "N/A")
     cols[4].metric("销量分", gap["sales_score"] if gap["sales_score"] is not None else "N/A")
@@ -371,7 +395,7 @@ def render_method_tab(calibration_report: dict[str, Any] | None) -> None:
 |---|---|---|---|
 | 1. 皮肤基础库 | 官方皮肤、英雄、品质、上架时间、获取方式 | `SkinFeatureVector` | 只说明皮肤是什么，不代表销量 |
 | 2. 舆情/市场证据 | B站、微博、人工导入维度分、讨论量 | `evaluation_score` | 缺证据时只给官方先验 |
-| 3. 销量证据 | 公开销量榜、估算销量、上限/下限声明 | `sales_score` | 必须标明证据类型和链接 |
+| 3. 销量证据 | 官方公开排名或客户授权销量；非官方旁证需手动开启 | `sales_score` | 必须标明证据类型和链接 |
 | 4. 偏差检验 | `score - sales_score` | `gap` 和方向 | 判断模型低估/高估销量 |
 | 5. ML 校准 | sales-blind 特征，不含销量字段 | `calibrated_score` | 只作校准层，不覆盖原始评分 |
         """
@@ -399,20 +423,25 @@ def render_method_tab(calibration_report: dict[str, Any] | None) -> None:
         st.info("未加载校准报告。运行 scripts/calibrate_sales_score.py 可生成 outputs/sales_calibration_report.json。")
 
 
-def render_dataset_tab(db_path: Path, summary: dict[str, Any]) -> None:
+def render_dataset_tab(db_path: Path, summary: dict[str, Any], *, official_only: bool = True) -> None:
     st.subheader("数据审计")
     cols = st.columns(5)
     cols[0].metric("游戏数", summary["implemented_games"])
     cols[1].metric("英雄", summary["heroes"])
     cols[2].metric("皮肤", summary["skins"])
-    cols[3].metric("有销量证据皮肤", summary["sales_evidence_skins"])
-    cols[4].metric("销量证据条目", summary["sales_evidence_items"])
+    cols[3].metric("有官方证据皮肤", summary["sales_evidence_skins"])
+    cols[4].metric("官方证据条目", summary["sales_evidence_items"])
 
     st.markdown(
         "<div class='audit-note'>这不是生产级样本量。当前销量校准样本是公开证据样例；"
         "要服务销量，需要持续扩充到每个游戏数百条、每条有可追溯来源。</div>",
         unsafe_allow_html=True,
     )
+
+    if official_only:
+        st.info("B2B 官方证据模式：当前只统计 official_public_rank / official_exact_sales；非官方旁证默认隐藏。")
+    else:
+        st.warning("已显示非官方旁证。该模式只能用于探索，不应直接作为 B2B 销量验证口径。")
 
     left, right = st.columns(2)
     with left:
@@ -430,9 +459,9 @@ def render_dataset_tab(db_path: Path, summary: dict[str, Any]) -> None:
             use_container_width=True,
         )
 
-    st.write("公开销量证据明细")
+    st.write("官方公开证据明细")
     st.dataframe(
-        evidence_table(all_evidence_rows(db_path, limit=300)),
+        evidence_table(all_evidence_rows(db_path, official_only=official_only, limit=300)),
         hide_index=True,
         use_container_width=True,
     )
@@ -577,7 +606,7 @@ def render_game_scope_tab(summary: dict[str, Any]) -> None:
         {
             "game_scope": "王者荣耀",
             "status": "已接入本地皮肤库",
-            "current_data": f"{summary['skins']} skins / {summary['sales_evidence_skins']} with sales evidence",
+            "current_data": f"{summary['skins']} skins / {summary['sales_evidence_skins']} with official evidence",
             "next_requirement": "补真实销量、拥有率、舆情维度评分",
         },
         {
@@ -608,15 +637,15 @@ def render_json_tab(payload: dict[str, Any], source_key: str) -> None:
 
 def main() -> None:
     page_config()
-    db_path, source_key, signals, calibration_model = render_sidebar()
+    db_path, source_key, signals, calibration_model, official_only = render_sidebar()
     if not source_key or signals is None:
         st.title("EmoGame Evidence Workbench")
         st.write("请选择一个皮肤开始审计。")
         return
 
     try:
-        payload = build_payload(db_path, source_key, signals, calibration_model)
-        summary = dataset_summary(str(db_path))
+        payload = build_payload(db_path, source_key, signals, calibration_model, official_only=official_only)
+        summary = dataset_summary(str(db_path), official_only=official_only)
         calibration_report = load_calibration_report()
     except ValueError as exc:
         st.error(str(exc))
@@ -627,7 +656,7 @@ def main() -> None:
     with tabs[0]:
         render_method_tab(calibration_report)
     with tabs[1]:
-        render_dataset_tab(db_path, summary)
+        render_dataset_tab(db_path, summary, official_only=official_only)
     with tabs[2]:
         render_gap_tab(payload)
     with tabs[3]:

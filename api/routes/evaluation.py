@@ -130,9 +130,16 @@ def sales_report(
 def sales_gap(
     request: EvaluationRequest,
     db: str = Query(default=str(DEFAULT_DB_PATH)),
+    official_only: bool = Query(default=True),
 ) -> dict[str, Any]:
     db_path = Path(db)
     sales_features, _ = build_features_and_evaluation(db_path, request)
+    comparison_features = sales_features
+    if official_only:
+        comparison_features = FeatureBuilder(repo_or_404(db_path)).build(
+            sales_features.source_key,
+            sales_blind_signals(sales_features.market_signals),
+        )
     update = {"signals": asdict(sales_blind_signals(sales_features.market_signals))}
     score_request = (
         request.model_copy(update=update)
@@ -140,8 +147,11 @@ def sales_gap(
         else request.copy(update=update)
     )
     score_features, evaluation = build_features_and_evaluation(db_path, score_request)
-    evidence = MarketSignalRepository(db_path).list_evidence(sales_features.source_key)
-    gap = compare_score_to_sales(sales_features, evaluation, evidence)
+    evidence = MarketSignalRepository(db_path).list_evidence(
+        sales_features.source_key,
+        official_only=official_only,
+    )
+    gap = compare_score_to_sales(comparison_features, evaluation, evidence)
     return {
         "evaluation": evaluation.to_dict(),
         "sales_gap": gap,
