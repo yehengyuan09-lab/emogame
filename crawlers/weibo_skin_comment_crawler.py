@@ -57,6 +57,8 @@ HOTFLOW_URL = "https://m.weibo.cn/comments/hotflow"
 COMMENTS_SHOW_URL = "https://m.weibo.cn/comments/show"
 CONTAINER_URL = "https://m.weibo.cn/api/container/getIndex"
 SEARCH_URL = "https://m.weibo.cn/api/container/getIndex"
+LONG_TEXT_URL = "https://m.weibo.cn/statuses/extend"
+STATUS_URL = "https://m.weibo.cn/statuses/show"
 
 DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) "
@@ -82,6 +84,10 @@ FALLBACK_HERO_NAMES = [
 ]
 
 logger = logging.getLogger("weibo_skin_crawler")
+
+
+class WeiboAccessBlocked(RuntimeError):
+    """Raised when Weibo's anti-crawler layer rejects a discovery request."""
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +124,7 @@ class WeiboPost:
 class CrawlEntry:
     """Aggregated result for one post — matches existing JSON output format."""
     mid: str
-    title: str  # truncated post text used as label
+    title: str  # full post text; retained for output compatibility
     total_comments: int
     meaningful: int  # count of comments that passed skin-relevance filter
     low_quality: int  # count of comments filtered out
@@ -226,6 +232,16 @@ class WeiboClient:
             try:
                 await self.rate_limiter.wait()
                 resp = await self.client.get(url, params=params)
+                if resp.status_code == 432:
+                    raise WeiboAccessBlocked(
+                        "Weibo blocked the request with HTTP 432. This is an "
+                        "access-control/anti-crawler rejection of the timeline "
+                        "endpoint, not a transient server error. Verify the same "
+                        "request in a logged-in browser and refresh "
+                        "weiboSpider/.secret if the browser succeeds. If it is "
+                        "also blocked there, wait or use --mids; post-detail and "
+                        "long-text retrieval use separate endpoints."
+                    )
                 resp.raise_for_status()
                 data = resp.json()
                 # m.weibo.cn may return ok=0 for rate-limit / auth errors
@@ -257,6 +273,48 @@ class WeiboClient:
 # ---------------------------------------------------------------------------
 # post discovery
 # ---------------------------------------------------------------------------
+
+async def fetch_post_text(client: WeiboClient, mblog: dict[str, Any]) -> str:
+    """Return full post text, expanding long timeline/search previews."""
+    preview = mblog.get("text", "")
+    if not mblog.get("isLongText"):
+        return _clean_html(preview)
+
+    mid = mblog.get("id") or mblog.get("mid")
+    if not mid:
+        return _clean_html(preview)
+
+    try:
+        response = await client._request(LONG_TEXT_URL, params={"id": mid})
+        full_text = response.get("data", {}).get("longTextContent", "")
+        if full_text:
+            return _clean_html(full_text)
+        logger.warning("Long-text response was empty for mid=%s; using preview", mid)
+    except Exception as exc:
+        logger.warning("Failed to expand long post mid=%s; using preview: %s", mid, exc)
+
+    return _clean_html(preview)
+
+
+async def fetch_post_by_mid(client: WeiboClient, mid: str) -> WeiboPost:
+    """Fetch post metadata for an explicitly supplied MID."""
+    response = await client._request(STATUS_URL, params={"id": mid})
+    mblog = response.get("data", {})
+    if not mblog:
+        raise ValueError(f"Post metadata was empty for mid={mid}")
+
+    return WeiboPost(
+        mid=str(mblog.get("id") or mid),
+        user_id=mblog.get("user", {}).get("id", 0),
+        user_name=mblog.get("user", {}).get("screen_name", ""),
+        text=await fetch_post_text(client, mblog),
+        created_at=mblog.get("created_at", ""),
+        reposts_count=mblog.get("reposts_count", 0),
+        comments_count=mblog.get("comments_count", 0),
+        attitudes_count=mblog.get("attitudes_count", 0),
+        source=mblog.get("source", ""),
+        pics=[p.get("url", "") for p in mblog.get("pics", [])],
+    )
 
 async def fetch_official_posts(
     client: WeiboClient,
@@ -300,7 +358,7 @@ async def fetch_official_posts(
                 mid=mid,
                 user_id=mblog.get("user", {}).get("id", WZRY_UID),
                 user_name=mblog.get("user", {}).get("screen_name", ""),
-                text=_clean_html(mblog.get("text", "")),
+                text=await fetch_post_text(client, mblog),
                 created_at=created_at,
                 reposts_count=mblog.get("reposts_count", 0),
                 comments_count=mblog.get("comments_count", 0),
@@ -362,7 +420,7 @@ async def search_skin_posts(
                     mid=mid,
                     user_id=mblog.get("user", {}).get("id", 0),
                     user_name=mblog.get("user", {}).get("screen_name", ""),
-                    text=_clean_html(mblog.get("text", "")),
+                    text=await fetch_post_text(client, mblog),
                     created_at=created_at,
                     reposts_count=mblog.get("reposts_count", 0),
                     comments_count=mblog.get("comments_count", 0),
@@ -592,14 +650,6 @@ def _parse_weibo_date(date_str: str) -> datetime:
     return datetime.strptime(date_str, "%a %b %d %H:%M:%S %z %Y")
 
 
-def _make_title(text: str, max_len: int = 40) -> str:
-    """Create a short title from post text."""
-    text = _clean_html(text)
-    if len(text) <= max_len:
-        return text
-    return text[:max_len - 1] + "…"
-
-
 def _output_filename(prefix: str = "wzry_skin_comments") -> str:
     """Generate dated output filename."""
     today = datetime.now().strftime("%Y-%m-%d")
@@ -643,10 +693,14 @@ async def crawl(config: CrawlConfig) -> list[CrawlEntry]:
 
         # Direct MIDs
         for mid in config.mids:
-            all_posts.append(WeiboPost(
-                mid=mid, user_id=WZRY_UID, user_name="", text="",
-                created_at="", reposts_count=0, comments_count=0, attitudes_count=0,
-            ))
+            try:
+                all_posts.append(await fetch_post_by_mid(client, mid))
+            except Exception as exc:
+                logger.warning("Failed to fetch metadata for mid=%s: %s", mid, exc)
+                all_posts.append(WeiboPost(
+                    mid=mid, user_id=WZRY_UID, user_name="", text="",
+                    created_at="", reposts_count=0, comments_count=0, attitudes_count=0,
+                ))
 
         # Official account timeline
         if config.official:
@@ -712,7 +766,7 @@ async def crawl(config: CrawlConfig) -> list[CrawlEntry]:
 
                 entry = CrawlEntry(
                     mid=post.mid,
-                    title=_make_title(post.text) if post.text else f"post:{post.mid[:12]}",
+                    title=post.text if post.text else f"post:{post.mid[:12]}",
                     total_comments=post.comments_count or len(comments),
                     meaningful=len(meaningful),
                     low_quality=low_q,
@@ -726,7 +780,7 @@ async def crawl(config: CrawlConfig) -> list[CrawlEntry]:
                 # Still record the post with empty comments
                 results.append(CrawlEntry(
                     mid=post.mid,
-                    title=_make_title(post.text) if post.text else f"post:{post.mid[:12]}",
+                    title=post.text if post.text else f"post:{post.mid[:12]}",
                     total_comments=post.comments_count or 0,
                     meaningful=0,
                     low_quality=0,
@@ -828,7 +882,11 @@ async def main() -> None:
     )
 
     start = time.monotonic()
-    results = await crawl(config)
+    try:
+        results = await crawl(config)
+    except WeiboAccessBlocked as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     elapsed = time.monotonic() - start
 
     # ── Output ──
