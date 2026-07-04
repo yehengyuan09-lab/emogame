@@ -79,6 +79,9 @@ source .venv/bin/activate
 
 ## 当前状态
 
-- ✅ Git submodule `hero-skin-image` 已接入（130英雄、893皮肤、898张图片）
-- ✅ 皮肤数据查询 API 测试通过
-- ⬜ 技术方案已完成，等待实施
+- ✅ Git submodule `hero-skin-image` 已接入
+- ✅ WZRY 皮肤 SQLite + 图片数据已可查询
+- ✅ Weibo 社交评论采集入口已接入
+- ✅ VLM Phase 1 默认配置：`qwen2.5vl:3b` L1/L2 + AutoDL `gpt-5.4-mini` L3
+- ✅ SQLite Feature Store CRUD 与基础 Streamlit 皮肤浏览已实现
+- ⬜ 下一步：Phase 2 特征工程，完成 33 维特征向量与批量 VLM 联调

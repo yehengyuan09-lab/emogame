@@ -1,6 +1,11 @@
 """L2: Qwen2.5VL-3B fine aesthetic analysis via Ollama.
 
 Cached, with deferral to AutoDL when Ollama L2 is unavailable.
+
+Phase 1 intentionally uses the same local model family as L1 because the
+audit in ``progress/2026-06-20.md`` showed that it satisfies the JSON
+contract, while ``llama3.2-vision:11b`` needs prompt and token-budget work
+before it can be promoted.
 """
 
 from __future__ import annotations
@@ -38,11 +43,11 @@ class L2Analyzer:
 
         Returns a dict matching ``L2Output`` schema plus ``_source`` metadata.
         When Ollama L2 is unavailable, returns ``{"_source": "deferred_to_l3"}``
-        so the pipeline can produce L2 scores via GPT-4o-mini instead.
+        so the pipeline can produce L2 scores via AutoDL GPT-5.4-mini instead.
         """
         tier = await self.degradation.detect_tier()
 
-        # ── Defer to GPT-4o-mini ──
+        # ── Defer to AutoDL GPT-5.4-mini ──
         if tier in (
             PipelineTier.API_ONLY,
             PipelineTier.DEGRADED_API_L2,

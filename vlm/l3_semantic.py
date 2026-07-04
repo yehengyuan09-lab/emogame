@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import httpx
 from loguru import logger
 from openai import AsyncOpenAI
 
@@ -45,6 +46,7 @@ class L3Semantic:
         kwargs: dict[str, Any] = {
             "api_key": self.settings.autodl_token,
             "base_url": self.settings.autodl_base_url,
+            "http_client": httpx.AsyncClient(trust_env=False),
         }
         self._client = AsyncOpenAI(**kwargs)
         return self._client

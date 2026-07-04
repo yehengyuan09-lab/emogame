@@ -42,7 +42,7 @@
 │                        Model & Feature Layer                         │
 │  ┌───────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
 │  │ VLM Pipeline  │  │ Feature Eng.  │  │  Regression / XGBoost    │  │
-│  │ (InternVL2)   │  │ Pipeline      │  │  Model Server            │  │
+│  │ (qwen2.5vl)   │  │ Pipeline      │  │  Model Server            │  │
 │  └───────┬───────┘  └──────┬───────┘  └───────────┬──────────────┘  │
 │          │                 │                      │                  │
 │  ┌───────┴─────────────────┴──────────────────────┴──────────────┐  │
@@ -63,8 +63,8 @@
 | 层 | 职责 | 核心组件 |
 |----|------|----------|
 | 数据层 | 多源数据采集、清洗、存储 | Scrapy/httpx 爬虫, 数据管道 |
-| 模型层 | VLM 视觉理解、特征工程、溢价回归 | InternVL2, XGBoost, 特征存储 |
-| 智能体层 | 多 Agent 协作、任务调度、LLM 报告 | LangGraph, GPT-4o-mini |
+| 模型层 | VLM 视觉理解、特征工程、溢价回归 | qwen2.5vl, AutoDL GPT5.4-mini, XGBoost, 特征存储 |
+| 智能体层 | 多 Agent 协作、任务调度、LLM 报告 | LangGraph, GPT5.4-mini |
 | 展示层 | Web 交互、可视化、报告导出 | Streamlit, ECharts |
 
 ---
@@ -80,24 +80,19 @@
 - 角色姿态与构图（动感、视觉冲击力）
 - UI 标识元素（边框装饰、稀有度标签、限定标识）
 
-**推荐方案（双模型分层）：**
+**推荐方案（Phase 1 本地默认 + API 语义层）：**
 
 | 层级 | 模型 | 部署方式 | 用途 | 延迟 |
 |------|------|----------|------|------|
-| L1 快速提取 | InternVL2-4B | 本地 GPU (T4) | 批量皮肤分类、色彩提取、构图分析 | ~0.5s/img |
-| L2 精细分析 | Qwen2-VL-7B | 本地 GPU (A10) | 审美维度评分、特效层级判别、缺陷检测 | ~2s/img |
-| L3 深度理解 | GPT-4o-mini / Claude 3.5 Sonnet | API 调用 | 设计语言解读、文化符号识别、竞品对比描述 | ~3s/img |
+| L1 快速提取 | qwen2.5vl:3b | 本地 Ollama | 批量皮肤分类、色彩提取、构图分析 | ~0.5-2s/img |
+| L2 精细分析 | qwen2.5vl:3b | 本地 Ollama | 审美维度评分、特效层级判别、缺陷检测 | ~1-3s/img |
+| L3 深度理解 | GPT5.4-mini | AutoDL API | 设计语言解读、文化符号识别、竞品对比描述 | ~3s/img |
 
-**为什么选择 InternVL2？**
+**为什么选择 qwen2.5vl:3b？**
 - 开源可本地部署，无数据隐私顾虑
-- 中文场景友好（阿里达摩院训练数据包含中文图文）
-- 在 MMBench、MMStar 等中文视觉理解基准上表现最优
-- 4B 版本可在消费级 GPU 上运行，适合批量处理
-
-**为什么选择 Qwen2-VL？**
-- 原生支持中文 OCR、场景文字识别
-- 对游戏 UI 元素（边框、标签、稀有度标记）识别准确率高
-- 7B 版本支持高分辨率输入（4480×4480），适合分析壁纸级皮肤图
+- Ollama 原生支持，部署门槛低
+- 当前中文 L1/L2 prompt 可以稳定返回可解析 JSON
+- 3B 版本适合 Phase 1 批量处理和快速联调
 
 ### 2.2 VLM 处理管线
 
@@ -115,7 +110,7 @@
         │       │  - Canny 边缘密度检测
         │       │
         │       ▼
-        ├─[2]─► InternVL2-4B: 快速分类
+        ├─[2]─► qwen2.5vl:3b: 快速分类
         │       │  - 皮肤稀有度分类 (勇者/史诗/传说/无双/荣耀典藏)
         │       │  - 主色调识别 (5-dominant-colors)
         │       │  - 场景类型 (战场/主城/异界/抽象)
@@ -123,7 +118,7 @@
         │       │  - 特效密集度 (low/mid/high/extreme)
         │       │
         │       ▼
-        ├─[3]─► Qwen2-VL-7B: 精细分析
+        ├─[3]─► qwen2.5vl:3b: 精细分析
         │       │  - 面部与服饰细节评价 (1-10)
         │       │  - 特效质量判别 (粒子数量、光影层次、动态暗示)
         │       │  - 构图评分 (三分法、视觉引导线、留白比例)
@@ -131,7 +126,7 @@
         │       │  - 与同系列皮肤的一致性判断
         │       │
         │       ▼
-        ├─[4]─► GPT-4o-mini: 语义理解
+        ├─[4]─► GPT5.4-mini: 语义理解
         │       │  - 设计风格解读 (eg. "水墨国风"、"赛博朋克"）
         │       │  - 文化符号锚定 (eg. "山海经异兽"、"敦煌飞天")
         │       │  - 受众群体画像 (核心向/泛用户/女性向/收藏党)
@@ -204,7 +199,7 @@ Analyze this game skin image and output JSON:
 # L1 和 L2 结果写入特征存储，仅变更时重新推理
 
 # 策略 2: 批处理 + 动态批大小
-# InternVL2-4B 可 batch=8 同时推理（T4 16GB VRAM）
+# qwen2.5vl:3b 可用于本地批量推理（实际 batch size 按显存调节）
 # 总计: 900/8 × 0.5s ≈ 1 分钟完成全量 L1 分析
 
 # 策略 3: 增量更新
@@ -1280,8 +1275,8 @@ CASE_LIBRARY = [
     │                               │                              │
     │                               │  ③ VLM 视觉分析              │
     │                               │  ┌──────────────────────┐    │
-    │                               │  │ InternVL2 → Qwen2-VL │    │
-    │                               │  │ → GPT-4o-mini        │    │
+    │                               │  │ qwen2.5vl L1/L2      │    │
+    │                               │  │ → GPT5.4-mini        │    │
     │                               │  └──────────────────────┘    │
     │                               │                              │
     │                               │  ④ 特征工程 + 模型推理        │
@@ -1300,7 +1295,7 @@ CASE_LIBRARY = [
     │                               │                              │
     │                               │  ⑥ LLM 生成报告              │
     │                               │  ┌──────────────────────┐    │
-    │                               │  │ GPT-4o-mini          │    │
+    │                               │  │ GPT5.4-mini          │    │
     │                               │  │ 策略建议 + 自然语言   │    │
     │                               │  └──────────────────────┘    │
     │                               │                              │
@@ -1438,10 +1433,9 @@ if submitted:
 | **语言** | Python | 3.12 | 全栈后端 |
 | **Web框架** | FastAPI | 0.111+ | REST API |
 | **前端** | Streamlit | 1.35+ | 原型仪表盘 |
-| **VLM** | InternVL2 | 4B | L1 视觉分类 |
-| | Qwen2-VL | 7B | L2 精细视觉分析 |
+| **VLM** | qwen2.5vl | 3B | L1 视觉分类 + L2 精细视觉分析 |
 | | Pillow / OpenCV | — | 图像预处理 |
-| **LLM** | OpenAI GPT-4o-mini | — | 报告生成 |
+| **LLM** | AutoDL GPT5.4-mini | — | 语义分析 / 报告生成 |
 | | LangChain / LangGraph | 0.2+ | 智能体编排 |
 | **ML** | XGBoost | 2.1+ | 溢价回归 |
 | | scikit-learn | 1.5+ | 预处理、交叉验证 |
@@ -1532,9 +1526,9 @@ loguru==0.7.2
 ```
 
 **GPU 需求：**
-- 开发环境：单张 T4 16GB（可同时运行 InternVL2-4B）
-- 生产环境：A10 24GB（可同时运行 InternVL2-4B + Qwen2-VL-7B）
-- 若 GPU 不可用：退化为纯 API 模式（GPT-4o-mini API + CPU XGBoost）
+- 开发环境：本地 Ollama 运行 qwen2.5vl:3b
+- 生产环境：A10 24GB 可并行运行 qwen2.5vl:3b，并使用 AutoDL GPT5.4-mini 作为 L3
+- 若 GPU 不可用：退化为传统 CV + AutoDL API + CPU XGBoost
 
 ---
 
@@ -1544,10 +1538,10 @@ loguru==0.7.2
 Phase 1 (Week 1-2): Foundation
 ├── ✅ 环境搭建: .venv + pip install
 ├── ✅ 数据加载: hero-skin-image JSON 解析
-├── ⬜ VLM 集成: InternVL2-4B 本地部署 + 批量推理脚本
-├── ⬜ 爬虫框架: 官方商店 + 贴吧基础爬虫
-├── ⬜ 特征存储: SQLite schema + CRUD API
-└── ⬜ 基础 Streamlit: 英雄选择 + 皮肤浏览
+├── ✅ VLM 集成: qwen2.5vl:3b L1/L2 + AutoDL L3 + 缓存
+├── ✅ 爬虫框架: WZRY 官方皮肤数据 + Weibo 社交评论入口
+├── ✅ 特征存储: SQLite schema + CRUD API
+└── ✅ 基础 Streamlit: 英雄选择 + 皮肤浏览
 
 Phase 2 (Week 3-4): Feature Engineering
 ├── ⬜ 31 维特征向量完整实现
@@ -1565,7 +1559,7 @@ Phase 3 (Week 5-6): Model
 
 Phase 4 (Week 7-8): Agent & Integration
 ├── ⬜ LangGraph 智能体工作流
-├── ⬜ LLM 报告生成 (GPT-4o-mini)
+├── ⬜ LLM 报告生成 (GPT5.4-mini)
 ├── ⬜ FastAPI 端点
 ├── ⬜ Streamlit 完整仪表盘
 └── ⬜ 案例库 (10+ 条)
@@ -1600,8 +1594,9 @@ emogame/
 ├── vlm/
 │   ├── __init__.py
 │   ├── pipeline.py                 # VLM 三级管线
-│   ├── internvl.py                 # InternVL2 封装
-│   ├── qwen_vl.py                  # Qwen2-VL 封装
+│   ├── l1_classifier.py            # qwen2.5vl L1 分类
+│   ├── l2_analyzer.py              # qwen2.5vl L2 审美分析
+│   ├── l3_semantic.py              # AutoDL GPT5.4-mini 语义分析
 │   └── preprocess.py               # 图像预处理
 ├── crawlers/
 │   ├── __init__.py

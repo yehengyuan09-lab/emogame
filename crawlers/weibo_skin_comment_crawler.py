@@ -160,9 +160,8 @@ def load_hero_names() -> list[str]:
         logger.warning("Skins database not found, using fallback hero list")
         return FALLBACK_HERO_NAMES
     try:
-        conn = sqlite3.connect(str(HERO_SKIN_DB))
-        rows = conn.execute("SELECT DISTINCT hero_name FROM skins ORDER BY hero_name").fetchall()
-        conn.close()
+        with sqlite3.connect(str(HERO_SKIN_DB)) as conn:
+            rows = conn.execute("SELECT DISTINCT hero_name FROM skins ORDER BY hero_name").fetchall()
         names = [r[0] for r in rows if r[0]]
         if names:
             logger.info("Loaded %d hero names from skins database", len(names))
@@ -227,7 +226,6 @@ class WeiboClient:
         self, url: str, params: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """GET a JSON endpoint with retry + rate-limiting."""
-        last_exc: Exception | None = None
         for attempt in range(self.max_retries):
             try:
                 await self.rate_limiter.wait()
@@ -259,7 +257,6 @@ class WeiboClient:
                     )
                 return data
             except (httpx.TimeoutException, httpx.HTTPStatusError) as e:
-                last_exc = e
                 if attempt < self.max_retries - 1:
                     wait = 2 ** attempt + random.uniform(0, 1)
                     logger.debug("Request failed (attempt %d/%d), retrying in %.1fs: %s",
@@ -267,7 +264,6 @@ class WeiboClient:
                     await asyncio.sleep(wait)
                 else:
                     raise
-        raise last_exc  # type: ignore[misc]
 
 
 # ---------------------------------------------------------------------------
@@ -473,6 +469,7 @@ async def fetch_hot_comments(
                 break
             comments.append({
                 "user": item.get("user", {}).get("screen_name", ""),
+                "user_id": item.get("user", {}).get("id", 0),
                 "text": _clean_html(item.get("text", "")),
                 "like_count": item.get("like_count", 0),
                 "total_number": item.get("total_number", 0),
@@ -514,6 +511,7 @@ async def fetch_all_comments(
                 break
             comments.append({
                 "user": item.get("user", {}).get("screen_name", ""),
+                "user_id": item.get("user", {}).get("id", 0),
                 "text": _clean_html(item.get("text", "")),
                 "like_count": item.get("like_count", 0),
                 "total_number": item.get("total_number", 0),
@@ -756,10 +754,10 @@ async def crawl(config: CrawlConfig) -> list[CrawlEntry]:
                     comments = await fetch_hot_comments(client, post.mid, config.max_comments_per_post)
                     if len(comments) < 20:
                         all_comments = await fetch_all_comments(client, post.mid, config.max_comments_per_post)
-                        # Merge, preferring hot order
-                        hot_users = {c["user"] for c in comments}
+                        # Merge, preferring hot order; deduplicate by user_id
+                        hot_user_ids = {c.get("user_id") for c in comments}
                         for c in all_comments:
-                            if c["user"] not in hot_users:
+                            if c.get("user_id") not in hot_user_ids:
                                 comments.append(c)
 
                 meaningful, low_q = filter_comments(comments, config.min_skin_signals)
@@ -884,8 +882,15 @@ async def main() -> None:
     start = time.monotonic()
     try:
         results = await crawl(config)
-    except WeiboAccessBlocked as e:
+    except (FileNotFoundError, ValueError, WeiboAccessBlocked) as e:
         print(f"Error: {e}", file=sys.stderr)
+        if not isinstance(e, WeiboAccessBlocked):
+            print(
+                "Place a valid Weibo cookie in weiboSpider/.secret (see weiboSpider/.secret.example for format).\n"
+                "To obtain a cookie: log in to https://m.weibo.cn in a browser, then copy the Cookie header\n"
+                "from any API request in the Network tab of DevTools.",
+                file=sys.stderr,
+            )
         sys.exit(1)
     elapsed = time.monotonic() - start
 

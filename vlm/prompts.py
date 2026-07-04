@@ -1,7 +1,7 @@
 """Prompt templates for the three VLM pipeline tiers.
 
-L1 / L2 prompts are extracted from ``ollama_vlm_test.py``.
-L3 prompts are new for GPT-4o-mini semantic analysis.
+L1 / L2 prompts are optimized for the Phase 1 Ollama default
+``qwen2.5vl:3b``. L3 prompts target AutoDL GPT-5.4-mini semantic analysis.
 """
 
 from __future__ import annotations
@@ -9,19 +9,26 @@ from __future__ import annotations
 # ── L1: Fast classification (Qwen2.5VL-3B via Ollama) ──
 
 L1_PROMPT = """\
-Analyze this game skin image and output ONLY valid JSON (no markdown, no explanation):
+Analyze this game skin image and output ONLY valid JSON (no markdown, no explanation).
+
+Rules:
+- Pick exactly one rarity_tier from: 勇者, 史诗, 传说, 无双, 荣耀典藏.
+- Pick exactly one scene_type from: 战场, 主城, 异界, 抽象, 自然.
+- Pick exactly one effect_density from: low, mid, high, extreme.
+- dominant_colors must be 3 to 5 actual visible image colours as uppercase hex strings.
+- Do not copy option lists such as "勇者|史诗|传说".
 
 {
-  "rarity_tier": "勇者|史诗|传说|无双|荣耀典藏",
-  "dominant_colors": ["#HEX1", "#HEX2", "#HEX3", "#HEX4", "#HEX5"],
-  "scene_type": "战场|主城|异界|抽象|自然",
-  "character_ratio": 0.0-1.0,
-  "effect_density": "low|mid|high|extreme",
-  "confidence": 0.0-1.0
+  "rarity_tier": "史诗",
+  "dominant_colors": ["#AABBCC", "#112233", "#445566"],
+  "scene_type": "战场",
+  "character_ratio": 0.65,
+  "effect_density": "high",
+  "confidence": 0.85
 }
 """
 
-# ── L2: Fine aesthetic analysis (Qwen2.5VL-3B via Ollama) ──
+# ── L2: Fine aesthetic analysis (Qwen2.5VL-3B via Ollama, Phase 1 default) ──
 
 L2_PROMPT = """\
 你是游戏皮肤视觉评估专家。请对下方皮肤图片从以下 8 个维度打分 (1-10)：

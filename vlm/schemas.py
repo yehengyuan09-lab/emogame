@@ -18,7 +18,7 @@ SCENE_TYPE = Literal["战场", "主城", "异界", "抽象", "自然"]
 EFFECT_DENSITY = Literal["low", "mid", "high", "extreme"]
 
 
-# ── L1: Fast classification (InternVL2-4B) ──
+# ── L1: Fast classification (Qwen2.5VL-3B) ──
 
 class L1Output(BaseModel):
     """Output schema for L1 fast skin classification."""
@@ -41,7 +41,7 @@ class L1Output(BaseModel):
         return v
 
 
-# ── L2: Fine aesthetic analysis (Qwen2-VL-7B) ──
+# ── L2: Fine aesthetic analysis (Qwen2.5VL-3B) ──
 
 class UIElements(BaseModel):
     """UI markers detected on the skin card."""
@@ -66,7 +66,7 @@ class L2Output(BaseModel):
     ui_elements: UIElements = Field(default_factory=UIElements)
 
 
-# ── L3: Semantic understanding (GPT-4o-mini) ──
+# ── L3: Semantic understanding (AutoDL GPT-5.4-mini) ──
 
 class SimilarSkin(BaseModel):
     """A skin that is stylistically similar to the analyzed one."""

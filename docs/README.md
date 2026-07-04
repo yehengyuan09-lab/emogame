@@ -54,14 +54,14 @@ emogame/
 │   └── prompts.py                  # LLM Prompt 模板
 ├── vlm/                            # VLM 视觉管线
 │   ├── pipeline.py                 # 三级管线编排
-│   ├── internvl.py                 # InternVL2 封装
-│   ├── qwen_vl.py                  # Qwen2-VL 封装
+│   ├── l1_classifier.py            # qwen2.5vl L1 分类
+│   ├── l2_analyzer.py              # qwen2.5vl L2 审美分析
+│   ├── l3_semantic.py              # AutoDL GPT5.4-mini 语义分析
 │   └── preprocess.py               # 图像预处理
 ├── crawlers/                       # 数据采集
 │   ├── manager.py                  # 爬虫调度器
-│   ├── official_store.py           # 官方商城爬虫
-│   ├── community.py                # 社区爬虫
-│   └── market.py                   # 二级市场爬虫
+│   ├── wzry_skin_crawler.py        # WZRY 官方皮肤数据
+│   └── weibo_skin_comment_crawler.py # Weibo 社交评论
 ├── feature_engineering/            # 特征工程
 │   ├── pipeline.py                 # 特征主管线
 │   ├── features.py                 # 特征向量定义

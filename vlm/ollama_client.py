@@ -1,8 +1,8 @@
 """Shared Ollama HTTP client for L1 and L2 tiers.
 
-Refactored from ``ollama_vlm_test.py``.  Both L1 (InternVL2-4B) and L2
-(Qwen2-VL-7B) use the same Ollama ``/api/chat`` endpoint — only the model
-name and prompt differ.
+Refactored from ``ollama_vlm_test.py``. Both Phase 1 tiers use the same
+Ollama ``/api/chat`` endpoint and default to ``qwen2.5vl:3b`` with different
+prompts.
 """
 
 from __future__ import annotations
