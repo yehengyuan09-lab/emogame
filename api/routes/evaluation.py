@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -140,7 +139,7 @@ def sales_gap(
             sales_features.source_key,
             sales_blind_signals(sales_features.market_signals),
         )
-    update = {"signals": asdict(sales_blind_signals(sales_features.market_signals))}
+    update = {"signals": sales_blind_signals(sales_features.market_signals).model_dump()}
     score_request = (
         request.model_copy(update=update)
         if hasattr(request, "model_copy")

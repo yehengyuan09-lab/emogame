@@ -4,25 +4,25 @@
 
 ### 三级管线设计
 
-| 层级 | 模型 | 部署方式 | 用途 | 延迟 | 成本 |
-|------|------|----------|------|------|------|
-| L1 快速提取 | qwen2.5vl:3b | 本地 GPU (T4, 16GB) | 批量皮肤分类、色彩提取、构图分析 | ~0.5s/img | 免费 |
-| L2 精细分析 | llama3.2-vision:11b | 本地 GPU (A10, 24GB) | 审美维度评分、特效层级判别、缺陷检测 | ~2s/img | 免费 |
-| L3 深度理解 | GPT5.4-mini | API 调用 | 设计语言解读、文化符号识别、竞品对比描述 | ~3s/img | ~$0.00015/img |
+| 层级        | 模型                | 部署方式          | 用途                                     | 延迟        | 成本          |
+| ----------- | ------------------- | ----------------- | ---------------------------------------- | ----------- | ------------- |
+| L1 快速提取 | qwen2.5vl:3b        | 本地 GPU / Ollama | 批量皮肤分类、色彩提取、构图分析         | ~0.5-2s/img | 免费          |
+| L2 精细分析 | <br /> llama3.2:11b | 本地 GPU / Ollama | 审美维度评分、特效层级判别、缺陷检测     | ~1-3s/img   | 免费          |
+| L3 深度理解 | GPT5.4-mini         | API 调用          | 设计语言解读、文化符号识别、竞品对比描述 | ~3s/img     | ~$0.00015/img |
 
 ### 模型能力对比
 
-#### qwen2.5vl:3b（L1 — 批量快速分类）
+#### qwen2.5vl:3b（L1/L2 — Phase 1 本地默认）
 
-- **优势**：开源可本地部署，Qwen2.5-VL 系列视觉语言模型，3B 参数可在 T4 上运行，Ollama 原生支持
-- **适用任务**：颜色直方图、构图密度、场景分类、UI 标签检测
+- **优势**：开源可本地部署，Qwen2.5-VL 系列视觉语言模型，3B 参数可在本地 Ollama 运行，中文 prompt 与 JSON 输出稳定
+- **适用任务**：颜色直方图、构图密度、场景分类、UI 标签检测、8 维审美评分
 - **局限**：对高分辨率细节（1920×882 壁纸）理解有限
 
-#### llama3.2-vision:11b（L2 — 精细审美分析）
+#### llama3.2-vision:11b（候选 L2 — 暂缓默认启用）
 
-- **优势**：Meta Llama 3.2 视觉模型，11B 参数，支持高分辨率图像输入，英文视觉理解能力强，Ollama 原生支持
-- **适用任务**：面部细节、服饰纹理、特效粒子层数、UI 标识（限定标签、价格标签）
-- **局限**：需要 A10 24GB VRAM，不能批量高并发，中文理解需 prompt 引导
+- **优势**：Meta Llama 3.2 视觉模型，11B 参数，英文视觉理解能力强，Ollama 原生支持
+- **适用任务**：后续可用于更细粒度的面部、服饰纹理、特效粒子层数分析
+- **局限**：当前中文 L2 prompt 下会输出英文 prose 而非严格 JSON，需要英文 prompt 与更高 token budget 后再提升为默认 L2
 
 #### GPT5.4-mini（L3 — 语义理解）
 
@@ -51,7 +51,7 @@
         │       │  - 特效密集度 (low/mid/high/extreme)
         │       │
         │       ▼
-        ├─[3]─► llama3.2-vision:11b: 精细分析 (~2s)
+        ├─[3]─► qwen2.5vl:3b: 精细分析 (~1-3s)
         │       │  - 面部与服饰细节评价 (1-10)
         │       │  - 特效质量判别 (粒子数量、光影层次、动态暗示)
         │       │  - 构图评分 (三分法、视觉引导线、留白比例)
@@ -72,6 +72,7 @@
 ## 结构化输出 Schema
 
 ### L1 输出
+
 ```json
 {
   "rarity_tier": "史诗",
@@ -84,6 +85,7 @@
 ```
 
 ### L2 输出
+
 ```json
 {
   "model_detail": 8.5,
@@ -104,6 +106,7 @@
 ```
 
 ### L3 输出
+
 ```json
 {
   "design_style": "水墨国风",
@@ -120,6 +123,7 @@
 ## Prompt 工程
 
 ### L1 快速分类 Prompt
+
 ```
 Analyze this game skin image and output ONLY valid JSON (no markdown, no explanation):
 
@@ -133,6 +137,7 @@ Analyze this game skin image and output ONLY valid JSON (no markdown, no explana
 ```
 
 ### L2 精细分析 System Prompt
+
 ```
 你是游戏皮肤视觉评估专家。请对下方皮肤图片从以下 8 个维度打分 (1-10)：
 
@@ -154,8 +159,7 @@ Analyze this game skin image and output ONLY valid JSON (no markdown, no explana
 
 ```bash
 # 拉取模型
-ollama pull qwen2.5vl:3b        # L1 快速分类
-ollama pull llama3.2-vision:11b # L2 精细审美分析
+ollama pull qwen2.5vl:3b        # L1 快速分类 + L2 精细审美分析
 
 # 测试 L1 模型
 python3 vlm/ollama_vlm_test.py \
@@ -165,7 +169,7 @@ python3 vlm/ollama_vlm_test.py \
 
 # 测试 L2 模型
 python3 vlm/ollama_vlm_test.py \
-  --models llama3.2-vision:11b \
+  --models qwen2.5vl:3b \
   --image hero-skin-image/3phone-bigskin-images/李白-3-千年之狐.jpg \
   --prompt l2
 ```
@@ -180,7 +184,7 @@ python3 vlm/ollama_vlm_test.py \
 CACHE_TTL_DAYS = 30
 
 # 策略 2: 动态批处理
-# qwen2.5vl:3b batch_size=8 on T4 (16GB VRAM)
+# qwen2.5vl:3b batch_size=8 on T4 (16GB VRAM) for L1-style classification
 # 900 张图片: 900/8 × 0.5s ≈ 56 秒完成全量 L1
 
 # 策略 3: 增量更新
@@ -194,11 +198,11 @@ CACHE_TTL_DAYS = 30
 
 ## GPU 需求
 
-| 环境 | GPU | VRAM | 可运行模型 |
-|------|-----|------|-----------|
-| 最低 | CPU only | — | 传统 CV 替代 L1，API 替代 L2+L3 |
-| 开发 | T4 | 16GB | qwen2.5vl:3b (batch=8) |
-| 生产 | A10 | 24GB | qwen2.5vl:3b + llama3.2-vision:11b 并行 |
+| 环境 | GPU      | VRAM | 可运行模型                          |
+| ---- | -------- | ---- | ----------------------------------- |
+| 最低 | CPU only | —   | 传统 CV 替代 L1，API 替代 L2+L3     |
+| 开发 | T4       | 16GB | qwen2.5vl:3b                        |
+| 生产 | A10      | 24GB | qwen2.5vl:3b 并行 + GPT5.4-mini API |
 
 ## 下一步
 

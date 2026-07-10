@@ -8,8 +8,16 @@ feature-engineering layer.
 from __future__ import annotations
 
 import time
+from enum import Enum
 from pathlib import Path
 from typing import Any
+
+
+class ExecutionMode(str, Enum):
+    """Execution mode for the VLM pipeline."""
+
+    L1_L2 = "l1_l2"   # Run only L1 + L2, skip L3
+    FULL = "full"      # Run all 3 tiers (default)
 
 from loguru import logger
 
@@ -51,11 +59,17 @@ class VlmPipeline:
 
     # ── public API ──
 
-    async def analyze(self, image_path: str | Path) -> dict[str, Any]:
-        """Run the full 3-tier VLM pipeline on a skin wallpaper image.
+    async def analyze(
+        self,
+        image_path: str | Path,
+        mode: ExecutionMode = ExecutionMode.FULL,
+    ) -> dict[str, Any]:
+        """Run the VLM pipeline on a skin wallpaper image.
 
         Args:
             image_path: Path to a wallpaper-bigskin image (1920×882).
+            mode: ``ExecutionMode.L1_L2`` to skip L3, ``ExecutionMode.FULL``
+                (default) to run all three tiers.
 
         Returns:
             Flat dict with keys matching ``VLMFeatureVector``.  The 4
@@ -85,21 +99,26 @@ class VlmPipeline:
         logger.debug(f"L2 complete: source={l2_result.get('_source')}")
 
         # ── L3: Semantic Analysis ──
-        l3_cache_hit = (
-            self.cache.get(
-                image_path,
-                "l3_combined" if needs_l2_fallback else "l3",
-                content_hash,
+        l3_cache_hit = False
+        l3_result: dict[str, Any] = {"_source": "skipped"}
+        if mode == ExecutionMode.L1_L2:
+            logger.debug("L3 skipped (mode=l1_l2)")
+        else:
+            l3_cache_hit = (
+                self.cache.get(
+                    image_path,
+                    "l3_combined" if needs_l2_fallback else "l3",
+                    content_hash,
+                )
+                is not None
             )
-            is not None
-        )
-        l3_result = await self.l3.analyze(
-            image_path,
-            l1_result,
-            l2_result if not needs_l2_fallback else None,
-            needs_l2_fallback=needs_l2_fallback,
-        )
-        logger.debug(f"L3 complete: source={l3_result.get('_source')}")
+            l3_result = await self.l3.analyze(
+                image_path,
+                l1_result,
+                l2_result if not needs_l2_fallback else None,
+                needs_l2_fallback=needs_l2_fallback,
+            )
+            logger.debug(f"L3 complete: source={l3_result.get('_source')}")
 
         # ── Extract L2 scores from combined response if deferred ──
         if needs_l2_fallback and l3_result.get("_source") in (
@@ -179,6 +198,7 @@ class VlmPipeline:
             cache_hit_l1=l1_cache_hit,
             cache_hit_l2=l2_cache_hit,
             cache_hit_l3=l3_cache_hit,
+            execution_mode=mode.value,
         )
 
         logger.info(
@@ -189,8 +209,12 @@ class VlmPipeline:
         )
         return feature_vector.to_dict()
 
-    def analyze_sync(self, image_path: str | Path) -> dict[str, Any]:
+    def analyze_sync(
+        self,
+        image_path: str | Path,
+        mode: ExecutionMode = ExecutionMode.FULL,
+    ) -> dict[str, Any]:
         """Synchronous wrapper for callers that don't use asyncio."""
         import asyncio
 
-        return asyncio.run(self.analyze(image_path))
+        return asyncio.run(self.analyze(image_path, mode=mode))

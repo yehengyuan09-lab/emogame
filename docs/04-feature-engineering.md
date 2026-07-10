@@ -27,16 +27,16 @@ Total Emotional Premium = Σ(Dimension_i × Weight_i)
                     └──────────┘
 ```
 
-## 完整特征定义（31 维）
+## 完整特征定义（33 维）
 
 ### 审美维度 (Aesthetic, w=0.30)
 
 | # | 特征名 | 类型 | 来源 | 说明 |
 |---|--------|------|------|------|
-| 1 | `vlm_art_quality` | float [0,10] | VLM L1 | 模型精细度综合评分 |
-| 2 | `vlm_effect_score` | float [0,10] | VLM L1 | 特效质量评分 |
-| 3 | `vlm_color_harmony` | float [0,1] | VLM L1 | 色彩和谐度 |
-| 4 | `vlm_composition` | float [0,10] | VLM L2 | 构图评分 |
+| 1 | `vlm_art_quality` | float [0,10] | VLM L2 | 模型精细度综合评分 (L2.model_detail) |
+| 2 | `vlm_effect_score` | float [0,10] | VLM L2 | 特效质量评分 (L2.effect_quality) |
+| 3 | `vlm_color_harmony` | float [0,1] | VLM L2 | 色彩和谐度 (L2.color_scheme / 10) |
+| 4 | `vlm_composition` | float [0,10] | VLM L2 | 构图评分 (L2.composition) |
 | 5 | `official_tier` | int [0,5] | 爬虫 | 官方稀有度 (伴生=0...荣耀典藏=5) |
 | 6 | `has_voice_pack` | bool | 爬虫 | 是否含独立语音包 |
 | 7 | `has_custom_anim` | bool | 爬虫 | 是否有自定义动作 |

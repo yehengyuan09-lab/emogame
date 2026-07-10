@@ -68,7 +68,7 @@ services:
               count: 1
               capabilities: [gpu]
     environment:
-      - MODEL_NAME=InternVL2-4B
+      - MODEL_NAME=qwen2.5vl:3b
 
   redis:
     image: redis:7-alpine
@@ -90,8 +90,8 @@ volumes:
 | 环境 | GPU | VRAM | 可运行模型 | 适用场景 |
 |------|-----|------|-----------|----------|
 | 最低 | CPU only | — | 传统 CV + API 降级 | 本地开发、demo |
-| 开发 | T4 | 16GB | InternVL2-4B (batch=8) | 日常开发调试 |
-| 生产 | A10 | 24GB | InternVL2-4B + Qwen2-VL-7B | 正式环境 |
+| 开发 | T4 | 16GB | qwen2.5vl:3b | 日常开发调试 |
+| 生产 | A10 | 24GB | qwen2.5vl:3b + GPT5.4-mini API | 正式环境 |
 
 ### 无 GPU 降级方案
 
@@ -100,12 +100,12 @@ volumes:
 class VLMPipeline:
     def __init__(self, use_gpu: bool = True):
         if use_gpu and torch.cuda.is_available():
-            self.l1_model = InternVL2("InternVL2-4B")
-            self.l2_model = Qwen2VL("Qwen2-VL-7B")
+            self.l1_model = OllamaVision("qwen2.5vl:3b")
+            self.l2_model = OllamaVision("qwen2.5vl:3b")
         else:
-            # 降级: 传统 CV + GPT-4o-mini API
+            # 降级: 传统 CV + GPT5.4-mini API
             self.l1_model = TraditionalCV()  # 颜色直方图 + 边缘检测
-            self.l2_model = GPTVision()      # GPT-4o-mini vision
+            self.l2_model = GPTVision()      # GPT5.4-mini vision
             logger.warning("GPU not available, using fallback pipeline")
 ```
 
@@ -115,10 +115,10 @@ class VLMPipeline:
 Phase 1 (Week 1-2): Foundation
 ├── ✅ 环境搭建: .venv + pip install
 ├── ✅ 数据加载: hero-skin-image JSON 解析
-├── ⬜ VLM 集成: InternVL2-4B 本地部署 + 批量推理脚本
-├── ⬜ 爬虫框架: 官方商店 + 贴吧基础爬虫
-├── ⬜ 特征存储: SQLite schema + CRUD API
-└── ⬜ 基础 Streamlit: 英雄选择 + 皮肤浏览
+├── ✅ VLM 集成: qwen2.5vl:3b 本地 L1/L2 + AutoDL L3 + 缓存
+├── ✅ 爬虫框架: WZRY 官方皮肤数据 + Weibo 社交评论入口
+├── ✅ 特征存储: SQLite schema + CRUD API
+└── ✅ 基础 Streamlit: 英雄选择 + 皮肤浏览
 
 Phase 2 (Week 3-4): Feature Engineering
 ├── ⬜ 33 维特征向量完整实现
@@ -136,9 +136,9 @@ Phase 3 (Week 5-6): Model
 
 Phase 4 (Week 7-8): Agent & Integration
 ├── ⬜ LangGraph 智能体工作流
-├── ⬜ LLM 报告生成 (GPT-4o-mini)
-├── ✅ FastAPI 端点 (/api/skins, /api/evaluate, /api/sales-report)
-├── ✅ Streamlit 基础工作台
+├── ⬜ LLM 报告生成 (GPT5.4-mini)
+├── ⬜ FastAPI 端点 (/api/evaluate, /api/cases 等)
+├── ⬜ Streamlit 完整仪表盘
 └── ⬜ 案例库 (10+ 条)
 
 Phase 5 (Week 9-10): Polish & Deploy
@@ -166,4 +166,4 @@ LOG_LEVEL=INFO
 ## 下一步
 
 - 回到 [文档索引](README.md)
-- 开始实施 → Phase 1: Foundation
+- 开始实施 → Phase 2: Feature Engineering

@@ -25,9 +25,9 @@ class PipelineTier(Enum):
     """Available capability tiers for the VLM pipeline."""
 
     FULL = auto()  # All 3 tiers available via Ollama
-    DEGRADED_CV_L1 = auto()  # L1 via CV heuristics, L2+L3 via GPT-4o-mini
-    DEGRADED_API_L2 = auto()  # L1 via Ollama, L2+L3 via GPT-4o-mini
-    API_ONLY = auto()  # Everything via GPT-4o-mini
+    DEGRADED_CV_L1 = auto()  # L1 via CV heuristics, L2+L3 via AutoDL
+    DEGRADED_API_L2 = auto()  # L1 via Ollama, L2+L3 via AutoDL
+    API_ONLY = auto()  # Everything via AutoDL where possible
     UNAVAILABLE = auto()  # Nothing works — return empty results
 
 
@@ -194,7 +194,7 @@ Output a single JSON object with BOTH the 8 L2 scoring dimensions (as top-level 
             )
             content = response.choices[0].message.content or ""
         except Exception as exc:
-            logger.error(f"Combined L2+L3 via GPT-4o-mini failed: {exc}")
+            logger.error(f"Combined L2+L3 via AutoDL failed: {exc}")
             return {"_source": "error", "_error": str(exc)}
 
         parsed = parse_jsonish(content) or {}

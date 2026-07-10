@@ -1,0 +1,3 @@
+skin_key,mid,title,community_premium,engagement,sentiment,confidence,n_comments,n_meaningful,rationale,model,source,cached,error
+,5312215779382153,黄子弘凡演唱新皮肤主题曲预告,92.0,62.3,100.0,5,40,40,高赞评论高度集中于对黄子弘凡演唱的强烈期待（前20条评论中18条为重复‘期待@黄子弘凡_Lars’变体），情绪统一正向、互动密集且无负面反馈，叠加‘一拜二拜三拜’等具体作品联想，显示显著情绪溢价。,qwen3-vl-plus,community_engagement,False,
+0097-56406,5312547970617832,赵云/孙权/姬小满 西行封妖记皮肤CG,94.0,53.5,100.0,5,40,39,高赞评论高度集中于角色颜值、黄子弘凡主题曲的积极反馈与强烈期待，情绪正向且互动密集（如716赞推广曲、多条‘帅’‘萌’‘死而无憾’等情感化表达），有效评论率达97.5%，无显著负面声量，体现极高社区热情与情绪溢价。,qwen3-vl-plus,community_engagement,False,

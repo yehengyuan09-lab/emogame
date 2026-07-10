@@ -20,10 +20,11 @@ class VLMSettings(BaseSettings):
     l2_model: str = "qwen2.5vl:3b"
     l1_fallback_model: str = ""
 
-    # ── AutoDL (L3) — OpenAI-compatible vision API ──
+    # ── AutoDL (L3 + LLM-expert) — OpenAI-compatible vision API ──
     autodl_token: str = ""
     autodl_base_url: str = "https://www.autodl.art/api/v1"
     l3_model: str = "gpt-5.4-mini"
+    expert_model: str = "qwen3-vl-plus"  # LLM-as-expert labeler (run_expert_labeling)
 
     # ── Cache ──
     cache_ttl_days: int = 30

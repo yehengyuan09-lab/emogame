@@ -1,0 +1,18 @@
+{
+  "total": 2,
+  "labeled_ok": 2,
+  "failed": 0,
+  "failures": [],
+  "n_skin_matched": 1,
+  "n_corpus_level": 1,
+  "score_means": {
+    "community_premium": 93.0,
+    "engagement": 57.9,
+    "sentiment": 100.0
+  },
+  "use_llm": true,
+  "config": {
+    "model": "qwen3-vl-plus",
+    "temperature": 0.0
+  }
+}

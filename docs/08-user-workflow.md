@@ -17,8 +17,8 @@
     │                               │  - 获取二级市场行情           │
     │                               │                              │
     │                               │  ③ VLM Pipeline              │
-    │                               │  InternVL2 → Qwen2-VL        │
-    │                               │  → GPT-4o-mini               │
+    │                               │  qwen2.5vl L1/L2             │
+    │                               │  → GPT5.4-mini               │
     │                               │                              │
     │                               │  ④ Feature Engineering       │
     │                               │  33 维特征向量               │

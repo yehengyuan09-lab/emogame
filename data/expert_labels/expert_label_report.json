@@ -1,0 +1,21 @@
+{
+  "total": 20,
+  "labeled_ok": 20,
+  "failed": 0,
+  "failures": [],
+  "dimension_means": {
+    "aesthetic": 85.6,
+    "showing_off": 67.65,
+    "belonging": 69.9,
+    "collection": 69.15,
+    "surprise": 63.6,
+    "overall_premium": 75.5
+  },
+  "tier_monotonicity_spearman_rho": 0.8684399717578136,
+  "batch_size": 10,
+  "use_vlm_context": false,
+  "config": {
+    "model": "qwen3-vl-plus",
+    "temperature": 0.0
+  }
+}

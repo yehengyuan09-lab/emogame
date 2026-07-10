@@ -7,7 +7,6 @@ import re
 import sqlite3
 import time
 from contextlib import closing
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -126,7 +125,7 @@ class MarketSignalRepository:
         """
         self.ensure_schema()
         signal_obj = signals if isinstance(signals, MarketValidationSignals) else MarketValidationSignals.from_dict(signals)
-        values = asdict(signal_obj)
+        values = signal_obj.model_dump()
         now = time.strftime("%Y-%m-%d %H:%M:%S")
 
         with closing(self._connect()) as conn:
