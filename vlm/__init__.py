@@ -18,7 +18,7 @@ Public API
 """
 
 from vlm.config import VLMSettings, get_settings
-from vlm.pipeline import VlmPipeline
+from vlm.pipeline import ExecutionMode, VlmPipeline
 from vlm.schemas import (
     L1Output,
     L2Output,
@@ -28,6 +28,7 @@ from vlm.schemas import (
 )
 
 __all__ = [
+    "ExecutionMode",
     "VlmPipeline",
     "VLMFeatureVector",
     "L1Output",
