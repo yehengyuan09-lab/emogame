@@ -1,9 +1,9 @@
 [submodule "hero-skin-image"]
 	path = hero-skin-image
-	url = https://github.com/yansheng836/hero-skin-image.git
+	url = git@github.com:mzhyui/hero-skin-image.git
 [submodule "minimind"]
 	path = minimind
 	url = https://github.com/jingyaogong/minimind.git
 [submodule "weiboSpider"]
 	path = weiboSpider
-	url = https://github.com/dataabc/weiboSpider.git
+	url = git@github.com:mzhyui/weiboSpider.git
